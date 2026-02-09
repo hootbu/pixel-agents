@@ -6,6 +6,7 @@ import { vscode } from '../vscodeApi.js'
 
 export interface ExtensionMessageState {
   agents: number[]
+  selectedAgent: number | null
   agentTools: Record<number, ToolActivity[]>
   agentStatuses: Record<number, string>
   subagentTools: Record<number, Record<string, ToolActivity[]>>
@@ -22,7 +23,7 @@ function saveAgentSeats(os: OfficeState): void {
 
 export function useExtensionMessages(getOfficeState: () => OfficeState): ExtensionMessageState {
   const [agents, setAgents] = useState<number[]>([])
-  const [, setSelectedAgent] = useState<number | null>(null)
+  const [selectedAgent, setSelectedAgent] = useState<number | null>(null)
   const [agentTools, setAgentTools] = useState<Record<number, ToolActivity[]>>({})
   const [agentStatuses, setAgentStatuses] = useState<Record<number, string>>({})
   const [subagentTools, setSubagentTools] = useState<Record<number, Record<string, ToolActivity[]>>>({})
@@ -227,5 +228,5 @@ export function useExtensionMessages(getOfficeState: () => OfficeState): Extensi
     return () => window.removeEventListener('message', handler)
   }, [getOfficeState])
 
-  return { agents, agentTools, agentStatuses, subagentTools, layoutReady }
+  return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, layoutReady }
 }

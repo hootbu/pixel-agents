@@ -2,17 +2,21 @@ import { vscode } from '../vscodeApi.js'
 
 interface FloatingButtonsProps {
   isEditMode: boolean
+  isDebugMode: boolean
   zoom: number
   onOpenClaude: () => void
   onToggleEditMode: () => void
+  onToggleDebugMode: () => void
   onZoomChange: (zoom: number) => void
 }
 
 export function FloatingButtons({
   isEditMode,
+  isDebugMode,
   zoom,
   onOpenClaude,
   onToggleEditMode,
+  onToggleDebugMode,
   onZoomChange,
 }: FloatingButtonsProps) {
   return (
@@ -76,6 +80,26 @@ export function FloatingButtons({
         title="Toggle edit mode"
       >
         Edit
+      </button>
+      <button
+        onClick={onToggleDebugMode}
+        style={{
+          padding: '5px 10px',
+          fontSize: '12px',
+          background: isDebugMode
+            ? 'var(--vscode-button-background)'
+            : 'var(--vscode-button-secondaryBackground, #3A3D41)',
+          color: isDebugMode
+            ? 'var(--vscode-button-foreground)'
+            : 'var(--vscode-button-secondaryForeground, #ccc)',
+          border: isDebugMode ? '1px solid var(--vscode-focusBorder, #007fd4)' : 'none',
+          borderRadius: 3,
+          cursor: 'pointer',
+          opacity: 0.9,
+        }}
+        title="Toggle debug view"
+      >
+        Debug
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
         <button

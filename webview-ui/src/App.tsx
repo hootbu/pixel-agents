@@ -10,6 +10,7 @@ import { useEditorActions } from './hooks/useEditorActions.js'
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js'
 import { FloatingButtons } from './components/FloatingButtons.js'
 import { AgentLabels } from './components/AgentLabels.js'
+import { DebugView } from './components/DebugView.js'
 
 // Game state lives outside React — updated imperatively by message handlers
 const officeStateRef = { current: null as OfficeState | null }
@@ -23,9 +24,17 @@ function getOfficeState(): OfficeState {
 }
 
 function App() {
-  const { agents, agentTools, agentStatuses, subagentTools, layoutReady } = useExtensionMessages(getOfficeState)
+  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, layoutReady } = useExtensionMessages(getOfficeState)
 
   const editor = useEditorActions(getOfficeState, editorState)
+
+  const [isDebugMode, setIsDebugMode] = useState(false)
+
+  const handleToggleDebugMode = useCallback(() => setIsDebugMode((prev) => !prev), [])
+
+  const handleSelectAgent = useCallback((id: number) => {
+    vscode.postMessage({ type: 'focusAgent', id })
+  }, [])
 
   const [hoveredAgent, setHoveredAgent] = useState<number | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
@@ -87,9 +96,11 @@ function App() {
 
       <FloatingButtons
         isEditMode={editor.isEditMode}
+        isDebugMode={isDebugMode}
         zoom={editor.zoom}
         onOpenClaude={editor.handleOpenClaude}
         onToggleEditMode={editor.handleToggleEditMode}
+        onToggleDebugMode={handleToggleDebugMode}
         onZoomChange={editor.handleZoomChange}
       />
 
@@ -125,6 +136,17 @@ function App() {
         agentStatuses={agentStatuses}
         subagentTools={subagentTools}
       />
+
+      {isDebugMode && (
+        <DebugView
+          agents={agents}
+          selectedAgent={selectedAgent}
+          agentTools={agentTools}
+          agentStatuses={agentStatuses}
+          subagentTools={subagentTools}
+          onSelectAgent={handleSelectAgent}
+        />
+      )}
     </div>
   )
 }

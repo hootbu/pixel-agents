@@ -24,7 +24,8 @@ VS Code extension with an embedded React webview panel.
 │   │   │   └── useEditorKeyboard.ts    — Keyboard shortcut effect
 │   │   ├── components/
 │   │   │   ├── FloatingButtons.tsx     — Top-left button bar + zoom controls
-│   │   │   └── AgentLabels.tsx         — Name labels + status dots above characters
+│   │   │   ├── AgentLabels.tsx         — Name labels + status dots above characters
+│   │   │   └── DebugView.tsx           — Card-based debug overlay showing agent tool status
 │   │   └── office/           — Pixel art office UI (see "Office UI" section below)
 │   └── vite.config.ts        — Builds to ../dist/webview with relative base paths
 ├── scripts/
@@ -294,6 +295,7 @@ Toggle-based edit mode for customizing the office layout:
 - **"+ Agent" button** (top-left) creates new terminal + character
 - **"Sessions" button** opens JSONL folder in file explorer
 - **"Edit" button** (top-left) toggles layout editor mode
+- **"Debug" button** (top-left) toggles debug overlay — card-based view showing each agent's tool activity (active/done/permission dots, subagent nesting, waiting status). Toolbar stays visible on top (z-index 50 > debug z-index 40).
 - **Zoom** +/- buttons (top-left) or Ctrl+mousewheel to change integer zoom level (1x–10x)
 - **Pan** middle-mouse-button drag to pan the viewport when zoomed in
 
