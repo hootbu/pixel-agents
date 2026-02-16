@@ -25,3 +25,4 @@ dist-ssr
 
 # Privately licensed files
 */assets/*
+!*/assets/characters/

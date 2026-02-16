@@ -12,7 +12,7 @@ import {
 	getProjectDirPath,
 } from './agentManager.js';
 import { ensureProjectScan } from './fileWatcher.js';
-import { loadFurnitureAssets, sendAssetsToWebview, loadFloorTiles, sendFloorTilesToWebview, loadWallTiles, sendWallTilesToWebview } from './assetLoader.js';
+import { loadFurnitureAssets, sendAssetsToWebview, loadFloorTiles, sendFloorTilesToWebview, loadWallTiles, sendWallTilesToWebview, loadCharacterSprites, sendCharacterSpritesToWebview } from './assetLoader.js';
 
 export class ArcadiaViewProvider implements vscode.WebviewViewProvider {
 	nextAgentId = { current: 1 };
@@ -127,6 +127,13 @@ export class ArcadiaViewProvider implements vscode.WebviewViewProvider {
 
 							console.log('[Extension] Using assetsRoot:', assetsRoot);
 
+							// Load character sprites
+							const charSprites = await loadCharacterSprites(assetsRoot);
+							if (charSprites && this.webview) {
+								console.log('[Extension] Character sprites loaded, sending to webview');
+								sendCharacterSpritesToWebview(this.webview, charSprites);
+							}
+
 							// Load floor tiles
 							const floorTiles = await loadFloorTiles(assetsRoot);
 							if (floorTiles && this.webview) {
@@ -163,6 +170,10 @@ export class ArcadiaViewProvider implements vscode.WebviewViewProvider {
 							const bundled = path.join(ep, 'dist', 'assets');
 							if (fs.existsSync(bundled)) {
 								const distRoot = path.join(ep, 'dist');
+								const cs = await loadCharacterSprites(distRoot);
+								if (cs && this.webview) {
+									sendCharacterSpritesToWebview(this.webview, cs);
+								}
 								const ft = await loadFloorTiles(distRoot);
 								if (ft && this.webview) {
 									sendFloorTilesToWebview(this.webview, ft);

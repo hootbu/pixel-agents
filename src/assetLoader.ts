@@ -290,6 +290,101 @@ export function sendFloorTilesToWebview(
   console.log(`📤 Sent ${floorTiles.sprites.length} floor tile patterns to webview`)
 }
 
+// ── Character sprite loading ────────────────────────────────
+
+export interface CharacterDirectionSprites {
+  down: string[][][]
+  up: string[][][]
+  right: string[][][]
+}
+
+export interface LoadedCharacterSprites {
+  /** 6 pre-colored characters, each with 9 frames per direction */
+  characters: CharacterDirectionSprites[]
+}
+
+const CHAR_FRAME_W = 16
+const CHAR_FRAME_H = 32
+const CHAR_FRAMES_PER_ROW = 9
+const CHAR_COUNT = 6
+
+/**
+ * Load pre-colored character sprites from assets/characters/ (6 PNGs, each 144×72).
+ * Each PNG has 3 direction rows (down, up, right) × 9 frames (16×24 each).
+ */
+export async function loadCharacterSprites(
+  assetsRoot: string,
+): Promise<LoadedCharacterSprites | null> {
+  try {
+    const charDir = path.join(assetsRoot, 'assets', 'characters')
+    const characters: CharacterDirectionSprites[] = []
+
+    for (let ci = 0; ci < CHAR_COUNT; ci++) {
+      const filePath = path.join(charDir, `char_${ci}.png`)
+      if (!fs.existsSync(filePath)) {
+        console.log(`[AssetLoader] No character sprite found at: ${filePath}`)
+        return null
+      }
+
+      const pngBuffer = fs.readFileSync(filePath)
+      const png = PNG.sync.read(pngBuffer)
+
+      const directions = ['down', 'up', 'right'] as const
+      const charData: CharacterDirectionSprites = { down: [], up: [], right: [] }
+
+      for (let dirIdx = 0; dirIdx < directions.length; dirIdx++) {
+        const dir = directions[dirIdx]
+        const rowOffsetY = dirIdx * CHAR_FRAME_H
+        const frames: string[][][] = []
+
+        for (let f = 0; f < CHAR_FRAMES_PER_ROW; f++) {
+          const sprite: string[][] = []
+          const frameOffsetX = f * CHAR_FRAME_W
+          for (let y = 0; y < CHAR_FRAME_H; y++) {
+            const row: string[] = []
+            for (let x = 0; x < CHAR_FRAME_W; x++) {
+              const idx = (((rowOffsetY + y) * png.width) + (frameOffsetX + x)) * 4
+              const r = png.data[idx]
+              const g = png.data[idx + 1]
+              const b = png.data[idx + 2]
+              const a = png.data[idx + 3]
+              if (a < 128) {
+                row.push('')
+              } else {
+                row.push(`#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`.toUpperCase())
+              }
+            }
+            sprite.push(row)
+          }
+          frames.push(sprite)
+        }
+        charData[dir] = frames
+      }
+      characters.push(charData)
+    }
+
+    console.log(`[AssetLoader] ✅ Loaded ${characters.length} character sprites (${CHAR_FRAMES_PER_ROW} frames × 3 directions each)`)
+    return { characters }
+  } catch (err) {
+    console.error(`[AssetLoader] ❌ Error loading character sprites: ${err instanceof Error ? err.message : err}`)
+    return null
+  }
+}
+
+/**
+ * Send character sprites to webview
+ */
+export function sendCharacterSpritesToWebview(
+  webview: vscode.Webview,
+  charSprites: LoadedCharacterSprites,
+): void {
+  webview.postMessage({
+    type: 'characterSpritesLoaded',
+    characters: charSprites.characters,
+  })
+  console.log(`📤 Sent ${charSprites.characters.length} character sprites to webview`)
+}
+
 /**
  * Send loaded assets to webview
  */
