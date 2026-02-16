@@ -305,12 +305,12 @@ export interface LoadedCharacterSprites {
 
 const CHAR_FRAME_W = 16
 const CHAR_FRAME_H = 32
-const CHAR_FRAMES_PER_ROW = 9
+const CHAR_FRAMES_PER_ROW = 7
 const CHAR_COUNT = 6
 
 /**
- * Load pre-colored character sprites from assets/characters/ (6 PNGs, each 144×72).
- * Each PNG has 3 direction rows (down, up, right) × 9 frames (16×24 each).
+ * Load pre-colored character sprites from assets/characters/ (6 PNGs, each 112×96).
+ * Each PNG has 3 direction rows (down, up, right) × 7 frames (16×32 each).
  */
 export async function loadCharacterSprites(
   assetsRoot: string,

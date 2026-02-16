@@ -373,60 +373,6 @@ function flipHorizontal(template: TemplateCell[][]): TemplateCell[][] {
 // DOWN-FACING SPRITES
 // ════════════════════════════════════════════════════════════════
 
-const CHAR_DOWN_IDLE_1: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, _, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, E, K, K, E, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
-
-const CHAR_DOWN_IDLE_2: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, _, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, E, K, K, E, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
-
 // Walk down: 4 frames (1, 2=standing, 3=mirror legs, 2 again)
 const CHAR_WALK_DOWN_1: TemplateCell[][] = [
   [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
@@ -622,60 +568,6 @@ const CHAR_DOWN_READ_2: TemplateCell[][] = [
 // ════════════════════════════════════════════════════════════════
 // UP-FACING SPRITES (back of head, no face)
 // ════════════════════════════════════════════════════════════════
-
-const CHAR_UP_IDLE_1: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, _, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
-
-const CHAR_UP_IDLE_2: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, _, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, H, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, K, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, S, S, S, S, S, S, S, S, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, K, S, S, S, S, S, S, K, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, P, P, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, O, O, _, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
 
 // Walk up: back view, legs alternate
 const CHAR_WALK_UP_1: TemplateCell[][] = [
@@ -874,61 +766,6 @@ const CHAR_UP_READ_2: TemplateCell[][] = [
 // Left sprites are generated by flipHorizontal()
 // ════════════════════════════════════════════════════════════════
 
-// Right idle: side profile
-const CHAR_RIGHT_IDLE_1: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, E, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, K, S, S, S, S, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, P, P, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, _, O, O, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, O, O, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
-
-const CHAR_RIGHT_IDLE_2: TemplateCell[][] = [
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, H, H, H, H, H, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, E, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, K, _, _, _, _, _],
-  [_, _, _, _, _, _, K, K, K, K, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, S, S, S, S, S, S, _, _, _, _, _],
-  [_, _, _, _, _, K, S, S, S, S, K, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, S, S, S, S, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, P, P, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, P, P, _, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, _, P, P, _, P, P, _, _, _, _, _],
-  [_, _, _, _, _, _, O, O, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, O, O, _, O, O, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
-
 // Right walk: side view, legs step
 const CHAR_WALK_RIGHT_1: TemplateCell[][] = [
   [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
@@ -1126,22 +963,19 @@ const CHAR_RIGHT_READ_2: TemplateCell[][] = [
 // ════════════════════════════════════════════════════════════════
 
 /** All character templates grouped by direction, for use by the export script.
- *  Frame order per direction: idle1, idle2, walk1, walk2, walk3, type1, type2, read1, read2 */
+ *  Frame order per direction: walk1, walk2, walk3, type1, type2, read1, read2 */
 export const CHARACTER_TEMPLATES = {
   down: [
-    CHAR_DOWN_IDLE_1, CHAR_DOWN_IDLE_2,
     CHAR_WALK_DOWN_1, CHAR_WALK_DOWN_2, CHAR_WALK_DOWN_3,
     CHAR_DOWN_TYPE_1, CHAR_DOWN_TYPE_2,
     CHAR_DOWN_READ_1, CHAR_DOWN_READ_2,
   ],
   up: [
-    CHAR_UP_IDLE_1, CHAR_UP_IDLE_2,
     CHAR_WALK_UP_1, CHAR_WALK_UP_2, CHAR_WALK_UP_3,
     CHAR_UP_TYPE_1, CHAR_UP_TYPE_2,
     CHAR_UP_READ_1, CHAR_UP_READ_2,
   ],
   right: [
-    CHAR_RIGHT_IDLE_1, CHAR_RIGHT_IDLE_2,
     CHAR_WALK_RIGHT_1, CHAR_WALK_RIGHT_2, CHAR_WALK_RIGHT_3,
     CHAR_RIGHT_TYPE_1, CHAR_RIGHT_TYPE_2,
     CHAR_RIGHT_READ_1, CHAR_RIGHT_READ_2,
@@ -1177,7 +1011,6 @@ function flipSpriteHorizontal(sprite: SpriteData): SpriteData {
 // ════════════════════════════════════════════════════════════════
 
 export interface CharacterSprites {
-  idle: Record<Direction, [SpriteData, SpriteData]>
   walk: Record<Direction, [SpriteData, SpriteData, SpriteData, SpriteData]>
   typing: Record<Direction, [SpriteData, SpriteData]>
   reading: Record<Direction, [SpriteData, SpriteData]>
@@ -1200,29 +1033,23 @@ export function getCharacterSprites(paletteIndex: number): CharacterSprites {
     const flip = flipSpriteHorizontal
 
     sprites = {
-      idle: {
-        [Dir.DOWN]: [d[0], d[1]],
-        [Dir.UP]: [u[0], u[1]],
-        [Dir.RIGHT]: [rt[0], rt[1]],
-        [Dir.LEFT]: [flip(rt[0]), flip(rt[1])],
-      },
       walk: {
-        [Dir.DOWN]: [d[2], d[3], d[4], d[3]],
-        [Dir.UP]: [u[2], u[3], u[4], u[3]],
-        [Dir.RIGHT]: [rt[2], rt[3], rt[4], rt[3]],
-        [Dir.LEFT]: [flip(rt[2]), flip(rt[3]), flip(rt[4]), flip(rt[3])],
+        [Dir.DOWN]: [d[0], d[1], d[2], d[1]],
+        [Dir.UP]: [u[0], u[1], u[2], u[1]],
+        [Dir.RIGHT]: [rt[0], rt[1], rt[2], rt[1]],
+        [Dir.LEFT]: [flip(rt[0]), flip(rt[1]), flip(rt[2]), flip(rt[1])],
       },
       typing: {
+        [Dir.DOWN]: [d[3], d[4]],
+        [Dir.UP]: [u[3], u[4]],
+        [Dir.RIGHT]: [rt[3], rt[4]],
+        [Dir.LEFT]: [flip(rt[3]), flip(rt[4])],
+      },
+      reading: {
         [Dir.DOWN]: [d[5], d[6]],
         [Dir.UP]: [u[5], u[6]],
         [Dir.RIGHT]: [rt[5], rt[6]],
         [Dir.LEFT]: [flip(rt[5]), flip(rt[6])],
-      },
-      reading: {
-        [Dir.DOWN]: [d[7], d[8]],
-        [Dir.UP]: [u[7], u[8]],
-        [Dir.RIGHT]: [rt[7], rt[8]],
-        [Dir.LEFT]: [flip(rt[7]), flip(rt[8])],
       },
     }
   } else {
@@ -1232,12 +1059,6 @@ export function getCharacterSprites(paletteIndex: number): CharacterSprites {
     const rf = (t: TemplateCell[][]) => resolveTemplate(flipHorizontal(t), pal)
 
     sprites = {
-      idle: {
-        [Dir.DOWN]: [r(CHAR_DOWN_IDLE_1), r(CHAR_DOWN_IDLE_2)],
-        [Dir.UP]: [r(CHAR_UP_IDLE_1), r(CHAR_UP_IDLE_2)],
-        [Dir.RIGHT]: [r(CHAR_RIGHT_IDLE_1), r(CHAR_RIGHT_IDLE_2)],
-        [Dir.LEFT]: [rf(CHAR_RIGHT_IDLE_1), rf(CHAR_RIGHT_IDLE_2)],
-      },
       walk: {
         [Dir.DOWN]: [r(CHAR_WALK_DOWN_1), r(CHAR_WALK_DOWN_2), r(CHAR_WALK_DOWN_3), r(CHAR_WALK_DOWN_2)],
         [Dir.UP]: [r(CHAR_WALK_UP_1), r(CHAR_WALK_UP_2), r(CHAR_WALK_UP_3), r(CHAR_WALK_UP_2)],

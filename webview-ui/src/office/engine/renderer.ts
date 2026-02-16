@@ -1,4 +1,4 @@
-import { TileType, TILE_SIZE, MAP_COLS, MAP_ROWS } from '../types.js'
+import { TileType, TILE_SIZE, MAP_COLS, MAP_ROWS, CharacterState } from '../types.js'
 import type { TileType as TileTypeVal, FurnitureInstance, Character, SpriteData, Seat, FloorColor } from '../types.js'
 import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js'
 import { getCharacterSprites, BUBBLE_PERMISSION_SPRITE, BUBBLE_WAITING_SPRITE } from '../sprites/spriteData.js'
@@ -84,9 +84,16 @@ export function renderScene(
     const sprites = getCharacterSprites(ch.palette)
     const spriteData = getCharacterSprite(ch, sprites)
     const cached = getCachedSprite(spriteData, zoom)
+    // Sitting offset: shift character down when seated so they visually sit in the chair
+    const sittingOffset = ch.state === CharacterState.TYPE ? 6 : 0
     // Anchor at bottom-center of character — round to integer device pixels
     const drawX = Math.round(offsetX + ch.x * zoom - cached.width / 2)
-    const drawY = Math.round(offsetY + ch.y * zoom - cached.height)
+    const drawY = Math.round(offsetY + (ch.y + sittingOffset) * zoom - cached.height)
+
+    // Sort characters by bottom of their tile (not center) so they render
+    // in front of same-row furniture (e.g. chairs) but behind furniture
+    // at lower rows (e.g. desks, bookshelves that occlude from below).
+    const charZY = ch.y + TILE_SIZE / 2 + 0.5
 
     // White outline: full opacity for selected, 50% for hover
     const isSelected = selectedAgentId !== null && ch.id === selectedAgentId
@@ -95,10 +102,10 @@ export function renderScene(
       const outlineAlpha = isSelected ? 1.0 : 0.5
       const outlineData = getOutlineSprite(spriteData)
       const outlineCached = getCachedSprite(outlineData, zoom)
-      const olDrawX = drawX - zoom // 1 sprite-pixel offset, scaled
-      const olDrawY = drawY - zoom
+      const olDrawX = drawX - zoom  // 1 sprite-pixel offset, scaled
+      const olDrawY = drawY - zoom  // outline follows sitting offset via drawY
       drawables.push({
-        zY: ch.y - 0.001, // sort just before character
+        zY: charZY - 0.001, // sort just before character
         draw: (c) => {
           c.save()
           c.globalAlpha = outlineAlpha
@@ -109,7 +116,7 @@ export function renderScene(
     }
 
     drawables.push({
-      zY: ch.y, // sort by feet position
+      zY: charZY,
       draw: (c) => {
         c.drawImage(cached, drawX, drawY)
       },
@@ -347,9 +354,10 @@ export function renderBubbles(
     const cached = getCachedSprite(sprite, zoom)
     // Position: centered above the character's head
     // Character is anchored bottom-center at (ch.x, ch.y), sprite is 16x24
-    // Place bubble above head with a small gap
+    // Place bubble above head with a small gap; follow sitting offset
+    const sittingOff = ch.state === CharacterState.TYPE ? 10 : 0
     const bubbleX = Math.round(offsetX + ch.x * zoom - cached.width / 2)
-    const bubbleY = Math.round(offsetY + (ch.y - 24) * zoom - cached.height - 1 * zoom)
+    const bubbleY = Math.round(offsetY + (ch.y + sittingOff - 24) * zoom - cached.height - 1 * zoom)
 
     ctx.save()
     if (alpha < 1.0) ctx.globalAlpha = alpha

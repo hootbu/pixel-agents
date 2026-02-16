@@ -7,7 +7,6 @@ import {
   layoutToTileMap,
   layoutToFurnitureInstances,
   layoutToSeats,
-  getSeatTiles,
   getBlockedTiles,
 } from '../layout/layoutSerializer.js'
 import { getCatalogEntry, getOnStateType } from '../layout/furnitureCatalog.js'
@@ -34,8 +33,7 @@ export class OfficeState {
     this.layout = layout || createDefaultLayout()
     this.tileMap = layoutToTileMap(this.layout)
     this.seats = layoutToSeats(this.layout.furniture)
-    const seatTiles = getSeatTiles(this.seats)
-    this.blockedTiles = getBlockedTiles(this.layout.furniture, seatTiles)
+    this.blockedTiles = getBlockedTiles(this.layout.furniture)
     this.furniture = layoutToFurnitureInstances(this.layout.furniture)
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles)
   }
@@ -45,8 +43,7 @@ export class OfficeState {
     this.layout = layout
     this.tileMap = layoutToTileMap(layout)
     this.seats = layoutToSeats(layout.furniture)
-    const seatTiles = getSeatTiles(this.seats)
-    this.blockedTiles = getBlockedTiles(layout.furniture, seatTiles)
+    this.blockedTiles = getBlockedTiles(layout.furniture)
     this.rebuildFurnitureInstances()
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles)
 
@@ -94,6 +91,23 @@ export class OfficeState {
 
   getLayout(): OfficeLayout {
     return this.layout
+  }
+
+  /** Get the blocked-tile key for a character's own seat, or null */
+  private ownSeatKey(ch: Character): string | null {
+    if (!ch.seatId) return null
+    const seat = this.seats.get(ch.seatId)
+    if (!seat) return null
+    return `${seat.seatCol},${seat.seatRow}`
+  }
+
+  /** Temporarily unblock a character's own seat, run fn, then re-block */
+  private withOwnSeatUnblocked<T>(ch: Character, fn: () => T): T {
+    const key = this.ownSeatKey(ch)
+    if (key) this.blockedTiles.delete(key)
+    const result = fn()
+    if (key) this.blockedTiles.add(key)
+    return result
   }
 
   private findFreeSeat(): string | null {
@@ -173,8 +187,10 @@ export class OfficeState {
     if (!seat || seat.assigned) return
     seat.assigned = true
     ch.seatId = seatId
-    // Pathfind to new seat immediately
-    const path = findPath(ch.tileCol, ch.tileRow, seat.seatCol, seat.seatRow, this.tileMap, this.blockedTiles)
+    // Pathfind to new seat (unblock own seat tile for this query)
+    const path = this.withOwnSeatUnblocked(ch, () =>
+      findPath(ch.tileCol, ch.tileRow, seat.seatCol, seat.seatRow, this.tileMap, this.blockedTiles)
+    )
     if (path.length > 0) {
       ch.path = path
       ch.moveProgress = 0
@@ -199,7 +215,9 @@ export class OfficeState {
     if (!ch || !ch.seatId) return
     const seat = this.seats.get(ch.seatId)
     if (!seat) return
-    const path = findPath(ch.tileCol, ch.tileRow, seat.seatCol, seat.seatRow, this.tileMap, this.blockedTiles)
+    const path = this.withOwnSeatUnblocked(ch, () =>
+      findPath(ch.tileCol, ch.tileRow, seat.seatCol, seat.seatRow, this.tileMap, this.blockedTiles)
+    )
     if (path.length > 0) {
       ch.path = path
       ch.moveProgress = 0
@@ -421,7 +439,10 @@ export class OfficeState {
 
   update(dt: number): void {
     for (const ch of this.characters.values()) {
-      updateCharacter(ch, dt, this.walkableTiles, this.seats, this.tileMap, this.blockedTiles)
+      // Temporarily unblock own seat so character can pathfind to it
+      this.withOwnSeatUnblocked(ch, () =>
+        updateCharacter(ch, dt, this.walkableTiles, this.seats, this.tileMap, this.blockedTiles)
+      )
 
       // Tick bubble timer for waiting bubbles
       if (ch.bubbleType === 'waiting') {
@@ -443,10 +464,13 @@ export class OfficeState {
     const chars = this.getCharacters().sort((a, b) => b.y - a.y)
     for (const ch of chars) {
       // Character sprite is 16x24, anchored bottom-center
+      // Apply sitting offset to match visual position
+      const sittingOffset = ch.state === CharacterState.TYPE ? 6 : 0
+      const anchorY = ch.y + sittingOffset
       const left = ch.x - 8
       const right = ch.x + 8
-      const top = ch.y - 24
-      const bottom = ch.y
+      const top = anchorY - 24
+      const bottom = anchorY
       if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
         return ch.id
       }

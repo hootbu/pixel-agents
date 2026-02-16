@@ -4,7 +4,6 @@ import type { CharacterSprites } from '../sprites/spriteData.js'
 import { findPath } from '../layout/tileMap.js'
 
 const WALK_SPEED = 48 // pixels per second
-const IDLE_FRAME_DURATION = 0.6
 const WALK_FRAME_DURATION = 0.15
 const TYPE_FRAME_DURATION = 0.3
 const WANDER_PAUSE_MIN = 2.0
@@ -103,10 +102,8 @@ export function updateCharacter(
     }
 
     case CharacterState.IDLE: {
-      if (ch.frameTimer >= IDLE_FRAME_DURATION) {
-        ch.frameTimer -= IDLE_FRAME_DURATION
-        ch.frame = (ch.frame + 1) % 2
-      }
+      // No idle animation — static pose
+      ch.frame = 0
       // If became active, pathfind to seat
       if (ch.isActive) {
         if (!ch.seatId) {
@@ -253,9 +250,9 @@ export function getCharacterSprite(ch: Character, sprites: CharacterSprites): Sp
     case CharacterState.WALK:
       return sprites.walk[ch.dir][ch.frame % 4]
     case CharacterState.IDLE:
-      return sprites.idle[ch.dir][ch.frame % 2]
+      return sprites.walk[ch.dir][1]
     default:
-      return sprites.idle[ch.dir][0]
+      return sprites.walk[ch.dir][1]
   }
 }
 
