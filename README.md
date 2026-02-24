@@ -130,7 +130,7 @@ The webview runs a lightweight game loop with canvas rendering, BFS pathfinding,
 ## Known Limitations
 
 - **Agent-terminal sync** — the way agents are connected to Claude Code terminal instances is not super robust and sometimes desyncs, especially when terminals are rapidly opened/closed or restored across sessions.
-- **Heuristic-based status detection** — Claude Code's JSONL transcript format does not provide clear signals for when an agent is waiting for user input or when it has finished its turn. The current detection is based on heuristics (idle timers, turn-duration events) and often misfires — agents may briefly show the wrong status or miss transitions.
+- **Heuristic-based status detection** — Claude Code's JSONL transcript format does not provide perfectly clear signals for all state transitions. While the detection has been significantly improved with adaptive timeouts, early completion signals, and smarter idle detection, edge cases remain — particularly around text-only turns and rapid tool sequences.
 - **Windows/macOS testing** — the extension has been tested on Windows 11 and macOS. It may work on Linux, but there could be unexpected issues with file watching, paths, or terminal behavior.
 
 ## Roadmap
@@ -141,11 +141,25 @@ Implemented in this fork:
 - ~~**Sub-agent visualization**~~ — Task tool sub-agents spawn as separate characters with real-time tracking
 - ~~**Panel state retention**~~ — webview context is retained when hidden, no more state loss on panel switch
 - ~~**Zoom persistence & pixel-perfect steps**~~ — zoom level saved across sessions, 1px increments, px display
+- ~~**Better status detection**~~ — smarter agent state transitions with adaptive permission timers, early completion signals, and a new "Thinking..." indicator (see below)
+
+### Better Status Detection
+
+The original heuristic-based status detection used a fixed 7-second timeout to guess whether an agent was stuck waiting for user permission. This caused frequent false positives — slow tools like Bash commands or MCP integrations would trigger a "Needs approval" bubble even though the tool was still running normally.
+
+This has been completely reworked:
+
+- **Adaptive permission timeouts** — instead of a single 7s timer for all tools, the timeout now scales based on tool type. Fast tools (Read, Write, Edit, Glob, Grep) use a 5s window. Network tools (WebFetch, WebSearch) get 15s. Slow tools (Bash) get 20s. Unknown/MCP tools fall back to the original 7s. The system picks the longest timeout among all active non-exempt tools, so a concurrent Bash + Read won't fire prematurely just because Read would normally timeout sooner.
+- **Early completion signals** — the extension now listens to `mcp_progress` status fields (`completed`, `error`) and `hook_progress` `PostToolUse` events to detect tool completion before the formal `tool_result` arrives. When an early signal is received, the tool is marked as handled and the permission timer is cancelled if all active tools are accounted for. This eliminates false permission bubbles for MCP tools that emit completion status.
+- **"Thinking..." indicator** — when Claude is actively processing (between receiving a prompt and producing output), the Task panel now shows "Thinking..." with a blue pulsing dot instead of misleading "Idle". This uses the gap between the `user` record (prompt sent) and the first `assistant` record (response started) to distinguish genuine thinking from actual idleness.
+- **Smarter waiting timer** — the text-idle timer (used for text-only turns where `turn_duration` is never emitted) is no longer reset by every piece of incoming JSONL data. Previously, metadata records like `progress` or `system` events would continuously restart the 5s silence timer, preventing the agent from ever transitioning to "waiting". Now only semantically meaningful records (`assistant`, `user`) reset the timer.
+- **Fallback idle timer after tool completion** — when all tools in a turn complete but `turn_duration` hasn't arrived yet, a 5s fallback timer now kicks in. This catches the ~2% of tool-using turns where `turn_duration` is not emitted, preventing agents from being stuck in "Thinking..." indefinitely.
+- **Correct restore behavior** — characters now default to `isActive: false` on creation, so restored agents after a window reload show "Idle" instead of incorrectly displaying "Thinking...".
+- **Reduced tool completion lag** — tools that received an early completion signal skip the 300ms done-delay, making the UI feel more responsive for MCP-heavy workflows.
 
 Still open for contributions:
 
 - **Improve agent-terminal reliability** — more robust connection and sync between characters and Claude Code instances
-- **Better status detection** — find or propose clearer signals for agent state transitions (waiting, done, permission needed)
 - **Community assets** — freely usable pixel art tilesets or characters that anyone can use without purchasing third-party assets
 - **Agent creation and definition** — define agents with custom skills, system prompts, names, and skins before launching them
 - **Claude Code agent teams** — native support for [agent teams](https://code.claude.com/docs/en/agent-teams), visualizing multi-agent coordination and communication
