@@ -9,7 +9,9 @@ export function activate(context: vscode.ExtensionContext) {
 	providerInstance = provider;
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(VIEW_ID, provider)
+		vscode.window.registerWebviewViewProvider(VIEW_ID, provider, {
+			webviewOptions: { retainContextWhenHidden: true }
+		})
 	);
 
 	context.subscriptions.push(
