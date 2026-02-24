@@ -14,7 +14,7 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - Panel state retention across tab switches
 - Sound notifications on agent turn completion
 
-![Pixel Agents screenshot](webview-ui/public/Screenshot.jpg)
+![Pixel Agents screenshot](webview-ui/public/Screenshot.png)
 
 ## Features
 
@@ -70,7 +70,7 @@ Sub-agents inherit their parent's character palette and are placed at the closes
 ### Install from source
 
 ```bash
-git clone https://github.com/pablodelucca/pixel-agents.git
+git clone https://github.com/hootbu/pixel-agents.git
 cd pixel-agents
 npm install
 cd webview-ui && npm install && cd ..
@@ -84,7 +84,7 @@ Then press **F5** in VS Code to launch the Extension Development Host.
 To build, package, and install as a `.vsix` extension in one step, add this alias to your `~/.zshrc`:
 
 ```bash
-alias pxbuild="cd ~/Documents/pixel-agents-dev && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agents-1.0.0.vsix --force"
+alias pxbuild="cd ~/pixel-agents && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agents-1.0.0.vsix --force"
 ```
 
 Then run `pxbuild` from any terminal. After installation, reload VS Code (**Cmd+Shift+P → Reload Window**).
