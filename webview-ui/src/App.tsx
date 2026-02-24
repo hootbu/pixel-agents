@@ -122,7 +122,7 @@ function App() {
 
   const isEditDirty = useCallback(() => editor.isEditMode && editor.isDirty, [editor.isEditMode, editor.isDirty])
 
-  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
+  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty, editor.restoreZoom)
 
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isSeatMode, setIsSeatMode] = useState(false)
@@ -350,7 +350,17 @@ function App() {
       )}
 
       {/* Tasks button — sağ alt */}
-      <div style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 'var(--pixel-controls-z)' as unknown as number }}>
+      <div style={{
+        position: 'absolute',
+        bottom: 10,
+        right: 30,
+        zIndex: 'var(--pixel-controls-z)' as unknown as number,
+        background: 'var(--pixel-bg)',
+        border: '2px solid var(--pixel-border)',
+        borderRadius: 0,
+        padding: '4px 6px',
+        boxShadow: 'var(--pixel-shadow)',
+      }}>
         <button
           onClick={handleToggleTaskPanel}
           style={

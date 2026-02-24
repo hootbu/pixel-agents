@@ -14,7 +14,7 @@ import {
 } from './agentManager.js';
 import { ensureProjectScan } from './fileWatcher.js';
 import { loadFurnitureAssets, sendAssetsToWebview, loadFloorTiles, sendFloorTilesToWebview, loadWallTiles, sendWallTilesToWebview, loadCharacterSprites, sendCharacterSpritesToWebview, loadDefaultLayout } from './assetLoader.js';
-import { WORKSPACE_KEY_AGENT_SEATS, WORKSPACE_KEY_AGENT_NAMES, GLOBAL_KEY_SOUND_ENABLED } from './constants.js';
+import { WORKSPACE_KEY_AGENT_SEATS, WORKSPACE_KEY_AGENT_NAMES, GLOBAL_KEY_SOUND_ENABLED, GLOBAL_KEY_ZOOM } from './constants.js';
 import { writeLayoutToFile, readLayoutFromFile, watchLayoutFile } from './layoutPersistence.js';
 import type { LayoutWatcher } from './layoutPersistence.js';
 
@@ -96,6 +96,8 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				writeLayoutToFile(message.layout as Record<string, unknown>);
 			} else if (message.type === 'setSoundEnabled') {
 				this.context.globalState.update(GLOBAL_KEY_SOUND_ENABLED, message.enabled);
+			} else if (message.type === 'saveZoom') {
+				this.context.globalState.update(GLOBAL_KEY_ZOOM, message.zoom);
 			} else if (message.type === 'webviewReady') {
 				restoreAgents(
 					this.context,
@@ -107,7 +109,8 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				);
 				// Send persisted settings to webview
 				const soundEnabled = this.context.globalState.get<boolean>(GLOBAL_KEY_SOUND_ENABLED, true);
-				this.webview?.postMessage({ type: 'settingsLoaded', soundEnabled });
+				const savedZoom = this.context.globalState.get<number>(GLOBAL_KEY_ZOOM);
+				this.webview?.postMessage({ type: 'settingsLoaded', soundEnabled, zoom: savedZoom ?? null });
 
 				// Ensure project scan runs even with no restored agents (to adopt external terminals)
 				const projectDir = getProjectDirPath();
@@ -245,7 +248,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 					filters: { 'JSON Files': ['json'] },
 					canSelectMany: false,
 				});
-				if (!uris || uris.length === 0) return;
+				if (!uris || uris.length === 0) {return;}
 				try {
 					const raw = fs.readFileSync(uris[0].fsPath, 'utf-8');
 					const imported = JSON.parse(raw) as Record<string, unknown>;
@@ -268,7 +271,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 
 			vscode.window.onDidChangeActiveTerminal((terminal) => {
 				this.activeAgentId.current = null;
-				if (!terminal) return;
+				if (!terminal) {return;}
 				for (const [id, agent] of this.agents) {
 					if (agent.terminalRef === terminal) {
 						this.activeAgentId.current = id;
@@ -315,7 +318,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private startLayoutWatcher(): void {
-		if (this.layoutWatcher) return;
+		if (this.layoutWatcher) {return;}
 		this.layoutWatcher = watchLayoutFile((layout) => {
 			console.log('[Pixel Agents] External layout change — pushing to webview');
 			this.webview?.postMessage({ type: 'layoutLoaded', layout });

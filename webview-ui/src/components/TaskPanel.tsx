@@ -34,8 +34,8 @@ function getActivityText(
 
 const panelStyle: React.CSSProperties = {
   position: 'absolute',
-  bottom: 52,
-  right: 10,
+  bottom: 62,
+  right: 30,
   width: 280,
   maxHeight: 'calc(100vh - 80px)',
   overflowY: 'auto',

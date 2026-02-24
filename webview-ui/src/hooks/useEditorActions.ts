@@ -9,7 +9,7 @@ import type { ExpandDirection } from '../office/editor/editorActions.js'
 import { getCatalogEntry, getRotatedType, getToggledType } from '../office/layout/furnitureCatalog.js'
 import { defaultZoom } from '../office/toolUtils.js'
 import { vscode } from '../vscodeApi.js'
-import { LAYOUT_SAVE_DEBOUNCE_MS, ZOOM_MIN, ZOOM_MAX } from '../constants.js'
+import { LAYOUT_SAVE_DEBOUNCE_MS, ZOOM_MIN, ZOOM_MAX, TILE_SIZE } from '../constants.js'
 
 export interface EditorActions {
   isEditMode: boolean
@@ -35,6 +35,7 @@ export interface EditorActions {
   handleReset: () => void
   handleSave: () => void
   handleZoomChange: (zoom: number) => void
+  restoreZoom: (zoom: number) => void
   handleEditorTileAction: (col: number, row: number) => void
   handleEditorEraseAction: (col: number, row: number) => void
   handleEditorSelectionChange: () => void
@@ -315,7 +316,13 @@ export function useEditorActions(
   }, [])
 
   const handleZoomChange = useCallback((newZoom: number) => {
-    setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom)))
+    const clamped = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(newZoom * TILE_SIZE) / TILE_SIZE))
+    setZoom(clamped)
+    vscode.postMessage({ type: 'saveZoom', zoom: clamped })
+  }, [])
+
+  const restoreZoom = useCallback((savedZoom: number) => {
+    setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(savedZoom * TILE_SIZE) / TILE_SIZE)))
   }, [])
 
   const handleDragMove = useCallback((uid: string, newCol: number, newRow: number) => {
@@ -519,6 +526,7 @@ export function useEditorActions(
     handleReset,
     handleSave,
     handleZoomChange,
+    restoreZoom,
     handleEditorTileAction,
     handleEditorEraseAction,
     handleEditorSelectionChange,
