@@ -2,6 +2,7 @@ import type * as vscode from 'vscode';
 
 export interface AgentState {
 	id: number;
+	name: string;
 	terminalRef: vscode.Terminal;
 	projectDir: string;
 	jsonlFile: string;
@@ -19,6 +20,7 @@ export interface AgentState {
 
 export interface PersistedAgent {
 	id: number;
+	name: string;
 	terminalName: string;
 	jsonlFile: string;
 	projectDir: string;

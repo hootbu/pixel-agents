@@ -14,7 +14,7 @@ import {
 } from './agentManager.js';
 import { ensureProjectScan } from './fileWatcher.js';
 import { loadFurnitureAssets, sendAssetsToWebview, loadFloorTiles, sendFloorTilesToWebview, loadWallTiles, sendWallTilesToWebview, loadCharacterSprites, sendCharacterSpritesToWebview, loadDefaultLayout } from './assetLoader.js';
-import { WORKSPACE_KEY_AGENT_SEATS, GLOBAL_KEY_SOUND_ENABLED } from './constants.js';
+import { WORKSPACE_KEY_AGENT_SEATS, WORKSPACE_KEY_AGENT_NAMES, GLOBAL_KEY_SOUND_ENABLED } from './constants.js';
 import { writeLayoutToFile, readLayoutFromFile, watchLayoutFile } from './layoutPersistence.js';
 import type { LayoutWatcher } from './layoutPersistence.js';
 
@@ -41,6 +41,8 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 
 	// Cross-window layout sync
 	layoutWatcher: LayoutWatcher | null = null;
+
+	private terminalHandlersRegistered = false;
 
 	constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -69,6 +71,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 					this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
 					this.jsonlPollTimers, this.projectScanTimer,
 					this.webview, this.persistAgents,
+					this.context,
 				);
 			} else if (message.type === 'focusAgent') {
 				const agent = this.agents.get(message.id);
@@ -84,6 +87,10 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				// Store seat assignments in a separate key (never touched by persistAgents)
 				console.log(`[Pixel Agents] saveAgentSeats:`, JSON.stringify(message.seats));
 				this.context.workspaceState.update(WORKSPACE_KEY_AGENT_SEATS, message.seats);
+			} else if (message.type === 'saveAgentNames') {
+				// Store name → seat/palette mapping for cross-session persistence
+				console.log(`[Pixel Agents] saveAgentNames:`, JSON.stringify(message.names));
+				this.context.workspaceState.update(WORKSPACE_KEY_AGENT_NAMES, message.names);
 			} else if (message.type === 'saveLayout') {
 				this.layoutWatcher?.markOwnWrite();
 				writeLayoutToFile(message.layout as Record<string, unknown>);
@@ -256,33 +263,37 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 			}
 		});
 
-		vscode.window.onDidChangeActiveTerminal((terminal) => {
-			this.activeAgentId.current = null;
-			if (!terminal) return;
-			for (const [id, agent] of this.agents) {
-				if (agent.terminalRef === terminal) {
-					this.activeAgentId.current = id;
-					webviewView.webview.postMessage({ type: 'agentSelected', id });
-					break;
-				}
-			}
-		});
+		if (!this.terminalHandlersRegistered) {
+			this.terminalHandlersRegistered = true;
 
-		vscode.window.onDidCloseTerminal((closed) => {
-			for (const [id, agent] of this.agents) {
-				if (agent.terminalRef === closed) {
-					if (this.activeAgentId.current === id) {
-						this.activeAgentId.current = null;
+			vscode.window.onDidChangeActiveTerminal((terminal) => {
+				this.activeAgentId.current = null;
+				if (!terminal) return;
+				for (const [id, agent] of this.agents) {
+					if (agent.terminalRef === terminal) {
+						this.activeAgentId.current = id;
+						this.webview?.postMessage({ type: 'agentSelected', id });
+						break;
 					}
-					removeAgent(
-						id, this.agents,
-						this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
-						this.jsonlPollTimers, this.persistAgents,
-					);
-					webviewView.webview.postMessage({ type: 'agentClosed', id });
 				}
-			}
-		});
+			});
+
+			vscode.window.onDidCloseTerminal((closed) => {
+				for (const [id, agent] of this.agents) {
+					if (agent.terminalRef === closed) {
+						if (this.activeAgentId.current === id) {
+							this.activeAgentId.current = null;
+						}
+						removeAgent(
+							id, this.agents,
+							this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
+							this.jsonlPollTimers, this.persistAgents,
+						);
+						this.webview?.postMessage({ type: 'agentClosed', id });
+					}
+				}
+			});
+		}
 	}
 
 	/** Export current saved layout to webview-ui/public/assets/default-layout.json (dev utility) */

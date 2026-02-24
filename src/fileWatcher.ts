@@ -182,8 +182,10 @@ function adoptTerminalForFile(
 	persistAgents: () => void,
 ): void {
 	const id = nextAgentIdRef.current++;
+	const name = terminal.name || `Agent ${id}`;
 	const agent: AgentState = {
 		id,
+		name,
 		terminalRef: terminal,
 		projectDir,
 		jsonlFile,
@@ -203,8 +205,8 @@ function adoptTerminalForFile(
 	activeAgentIdRef.current = id;
 	persistAgents();
 
-	console.log(`[Pixel Agents] Agent ${id}: adopted terminal "${terminal.name}" for ${path.basename(jsonlFile)}`);
-	webview?.postMessage({ type: 'agentCreated', id });
+	console.log(`[Pixel Agents] Agent ${id} (${name}): adopted terminal "${terminal.name}" for ${path.basename(jsonlFile)}`);
+	webview?.postMessage({ type: 'agentCreated', id, name });
 
 	startFileWatching(id, jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
 	readNewLines(id, agents, waitingTimers, permissionTimers, webview);

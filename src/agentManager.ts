@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import type { AgentState, PersistedAgent } from './types.js';
 import { cancelWaitingTimer, cancelPermissionTimer } from './timerManager.js';
 import { startFileWatching, readNewLines, ensureProjectScan } from './fileWatcher.js';
-import { JSONL_POLL_INTERVAL_MS, TERMINAL_NAME_PREFIX, WORKSPACE_KEY_AGENTS, WORKSPACE_KEY_AGENT_SEATS } from './constants.js';
+import { JSONL_POLL_INTERVAL_MS, TERMINAL_NAME_PREFIX, WORKSPACE_KEY_AGENTS, WORKSPACE_KEY_AGENT_SEATS, WORKSPACE_KEY_AGENT_NAMES } from './constants.js';
 import { migrateAndLoadLayout } from './layoutPersistence.js';
 
 export function getProjectDirPath(cwd?: string): string | null {
@@ -15,7 +15,7 @@ export function getProjectDirPath(cwd?: string): string | null {
 	return path.join(os.homedir(), '.claude', 'projects', dirName);
 }
 
-export function launchNewTerminal(
+export async function launchNewTerminal(
 	nextAgentIdRef: { current: number },
 	nextTerminalIndexRef: { current: number },
 	agents: Map<number, AgentState>,
@@ -29,11 +29,19 @@ export function launchNewTerminal(
 	projectScanTimerRef: { current: ReturnType<typeof setInterval> | null },
 	webview: vscode.Webview | undefined,
 	persistAgents: () => void,
-): void {
+	context: vscode.ExtensionContext,
+): Promise<void> {
+	// Ask user for agent name
+	const name = await vscode.window.showInputBox({
+		prompt: 'Agent name (nickname)',
+		placeHolder: 'e.g. Alice, Bob, Frontend-Dev...',
+	});
+	if (!name) return; // user cancelled
+
 	const idx = nextTerminalIndexRef.current++;
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	const terminal = vscode.window.createTerminal({
-		name: `${TERMINAL_NAME_PREFIX} #${idx}`,
+		name,
 		cwd,
 	});
 	terminal.show();
@@ -51,10 +59,15 @@ export function launchNewTerminal(
 	const expectedFile = path.join(projectDir, `${sessionId}.jsonl`);
 	knownJsonlFiles.add(expectedFile);
 
+	// Look up persisted name data (palette, hueShift, seatId) for this name
+	const agentNames = context.workspaceState.get<Record<string, { seatId: string; palette: number; hueShift: number }>>(WORKSPACE_KEY_AGENT_NAMES, {});
+	const nameData = agentNames[name] ?? null;
+
 	// Create agent immediately (before JSONL file exists)
 	const id = nextAgentIdRef.current++;
 	const agent: AgentState = {
 		id,
+		name,
 		terminalRef: terminal,
 		projectDir,
 		jsonlFile: expectedFile,
@@ -73,8 +86,8 @@ export function launchNewTerminal(
 	agents.set(id, agent);
 	activeAgentIdRef.current = id;
 	persistAgents();
-	console.log(`[Pixel Agents] Agent ${id}: created for terminal ${terminal.name}`);
-	webview?.postMessage({ type: 'agentCreated', id });
+	console.log(`[Pixel Agents] Agent ${id} (${name}): created for terminal ${terminal.name}`);
+	webview?.postMessage({ type: 'agentCreated', id, name, nameData });
 
 	ensureProjectScan(
 		projectDir, knownJsonlFiles, projectScanTimerRef, activeAgentIdRef,
@@ -139,6 +152,7 @@ export function persistAgents(
 	for (const agent of agents.values()) {
 		persisted.push({
 			id: agent.id,
+			name: agent.name,
 			terminalName: agent.terminalRef.name,
 			jsonlFile: agent.jsonlFile,
 			projectDir: agent.projectDir,
@@ -177,6 +191,7 @@ export function restoreAgents(
 
 		const agent: AgentState = {
 			id: p.id,
+			name: p.name || `Agent ${p.id}`,
 			terminalRef: terminal,
 			projectDir: p.projectDir,
 			jsonlFile: p.jsonlFile,
@@ -266,12 +281,23 @@ export function sendExistingAgents(
 
 	// Include persisted palette/seatId from separate key
 	const agentMeta = context.workspaceState.get<Record<string, { palette?: number; seatId?: string }>>(WORKSPACE_KEY_AGENT_SEATS, {});
-	console.log(`[Pixel Agents] sendExistingAgents: agents=${JSON.stringify(agentIds)}, meta=${JSON.stringify(agentMeta)}`);
+
+	// Build name map from live agents
+	const agentNameMap: Record<number, string> = {};
+	for (const [id, agent] of agents) {
+		agentNameMap[id] = agent.name;
+	}
+
+	// Also include persisted name → seat data
+	const agentNames = context.workspaceState.get<Record<string, { seatId: string; palette: number; hueShift: number }>>(WORKSPACE_KEY_AGENT_NAMES, {});
+	console.log(`[Pixel Agents] sendExistingAgents: agents=${JSON.stringify(agentIds)}, meta=${JSON.stringify(agentMeta)}, names=${JSON.stringify(agentNameMap)}`);
 
 	webview.postMessage({
 		type: 'existingAgents',
 		agents: agentIds,
 		agentMeta,
+		agentNameMap,
+		agentNames,
 	});
 
 	sendCurrentAgentStatuses(agents, webview);
