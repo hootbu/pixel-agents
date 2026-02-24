@@ -445,6 +445,43 @@ export function renderRotateButton(
   return { cx, cy, radius }
 }
 
+// ── Character names ─────────────────────────────────────────────
+
+export function renderCharacterNames(
+  ctx: CanvasRenderingContext2D,
+  characters: Character[],
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+): void {
+  for (const ch of characters) {
+    if (!ch.name || ch.matrixEffect === 'despawn') continue
+
+    const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0
+    // Position name below the character sprite (bottom-center anchor + some gap)
+    const nameX = Math.round(offsetX + ch.x * zoom)
+    const nameY = Math.round(offsetY + (ch.y + sittingOffset) * zoom + 2 * zoom)
+
+    const fontSize = Math.max(7, Math.round(8 * zoom))
+    ctx.save()
+    ctx.font = `${fontSize}px "FS Pixel Sans Unicode", monospace`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+
+    // Black outline/shadow for readability
+    ctx.lineWidth = Math.max(2, Math.round(2 * zoom))
+    ctx.strokeStyle = '#000000'
+    ctx.lineJoin = 'round'
+    ctx.miterLimit = 2
+    ctx.strokeText(ch.name, nameX, nameY)
+
+    // White fill
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(ch.name, nameX, nameY)
+    ctx.restore()
+  }
+}
+
 // ── Speech bubbles ──────────────────────────────────────────────
 
 export function renderBubbles(
@@ -575,6 +612,9 @@ export function renderFrame(
   const selectedId = selection?.selectedAgentId ?? null
   const hoveredId = selection?.hoveredAgentId ?? null
   renderScene(ctx, allFurniture, characters, offsetX, offsetY, zoom, selectedId, hoveredId)
+
+  // Character names (rendered after scene, before bubbles)
+  renderCharacterNames(ctx, characters, offsetX, offsetY, zoom)
 
   // Speech bubbles (always on top of characters)
   renderBubbles(ctx, characters, offsetX, offsetY, zoom)

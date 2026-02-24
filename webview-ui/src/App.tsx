@@ -14,6 +14,7 @@ import { useEditorKeyboard } from './hooks/useEditorKeyboard.js'
 import { ZoomControls } from './components/ZoomControls.js'
 import { BottomToolbar } from './components/BottomToolbar.js'
 import { DebugView } from './components/DebugView.js'
+import { TaskPanel } from './components/TaskPanel.js'
 
 // Game state lives outside React — updated imperatively by message handlers
 const officeStateRef = { current: null as OfficeState | null }
@@ -124,8 +125,24 @@ function App() {
   const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
 
   const [isDebugMode, setIsDebugMode] = useState(false)
+  const [isSeatMode, setIsSeatMode] = useState(false)
+  const [isTaskPanelOpen, setIsTaskPanelOpen] = useState(false)
+
+  const handleToggleTaskPanel = useCallback(() => setIsTaskPanelOpen((prev) => !prev), [])
 
   const handleToggleDebugMode = useCallback(() => setIsDebugMode((prev) => !prev), [])
+  const handleToggleSeatMode = useCallback(() => {
+    setIsSeatMode((prev) => {
+      const next = !prev
+      if (!next) {
+        // Exiting seat mode — clear selection
+        const os = getOfficeState()
+        os.selectedAgentId = null
+        os.cameraFollowId = null
+      }
+      return next
+    })
+  }, [])
 
   const handleSelectAgent = useCallback((id: number) => {
     vscode.postMessage({ type: 'focusAgent', id })
@@ -197,6 +214,7 @@ function App() {
         officeState={officeState}
         onClick={handleClick}
         isEditMode={editor.isEditMode}
+        isSeatMode={isSeatMode}
         editorState={editorState}
         onEditorTileAction={editor.handleEditorTileAction}
         onEditorEraseAction={editor.handleEditorEraseAction}
@@ -225,14 +243,39 @@ function App() {
 
       <BottomToolbar
         isEditMode={editor.isEditMode}
+        isSeatMode={isSeatMode}
         onOpenClaude={editor.handleOpenClaude}
         onToggleEditMode={editor.handleToggleEditMode}
+        onToggleSeatMode={handleToggleSeatMode}
         isDebugMode={isDebugMode}
         onToggleDebugMode={handleToggleDebugMode}
       />
 
       {editor.isEditMode && editor.isDirty && (
         <EditActionBar editor={editor} editorState={editorState} />
+      )}
+
+      {isSeatMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 49,
+            background: 'var(--pixel-hint-bg)',
+            color: '#fff',
+            fontSize: '20px',
+            padding: '3px 8px',
+            borderRadius: 0,
+            border: '2px solid var(--pixel-accent)',
+            boxShadow: 'var(--pixel-shadow)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {officeState.selectedAgentId !== null ? 'Now click on a desk to assign' : 'Click on an agent to select'}
+        </div>
       )}
 
       {showRotateHint && (
@@ -303,6 +346,53 @@ function App() {
           agentStatuses={agentStatuses}
           subagentTools={subagentTools}
           onSelectAgent={handleSelectAgent}
+        />
+      )}
+
+      {/* Tasks button — sağ alt */}
+      <div style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 'var(--pixel-controls-z)' as unknown as number }}>
+        <button
+          onClick={handleToggleTaskPanel}
+          style={
+            isTaskPanelOpen
+              ? {
+                  padding: '5px 10px',
+                  fontSize: '24px',
+                  color: 'var(--pixel-text)',
+                  background: 'var(--pixel-active-bg)',
+                  border: '2px solid var(--pixel-accent)',
+                  borderRadius: 0,
+                  cursor: 'pointer',
+                }
+              : {
+                  padding: '5px 10px',
+                  fontSize: '24px',
+                  color: 'var(--pixel-text)',
+                  background: 'var(--pixel-btn-bg)',
+                  border: '2px solid transparent',
+                  borderRadius: 0,
+                  cursor: 'pointer',
+                }
+          }
+          onMouseEnter={(e) => {
+            if (!isTaskPanelOpen) (e.currentTarget as HTMLElement).style.background = 'var(--pixel-btn-hover-bg)'
+          }}
+          onMouseLeave={(e) => {
+            if (!isTaskPanelOpen) (e.currentTarget as HTMLElement).style.background = 'var(--pixel-btn-bg)'
+          }}
+        >
+          Tasks
+        </button>
+      </div>
+
+      {/* Task Panel */}
+      {isTaskPanelOpen && (
+        <TaskPanel
+          agents={agents}
+          agentTools={agentTools}
+          agentStatuses={agentStatuses}
+          subagentCharacters={subagentCharacters}
+          officeState={officeState}
         />
       )}
     </div>

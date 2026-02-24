@@ -55,6 +55,18 @@ function saveAgentSeats(os: OfficeState): void {
   vscode.postMessage({ type: 'saveAgentSeats', seats })
 }
 
+// Accumulated name→seat mappings — survives agent removal so closed agents keep their binding
+const savedNameMap: Record<string, { seatId: string; palette: number; hueShift: number }> = {}
+
+function saveAgentNames(os: OfficeState): void {
+  // Update map with current characters (active agents overwrite stale entries)
+  for (const ch of os.characters.values()) {
+    if (ch.isSubagent || !ch.name) continue
+    savedNameMap[ch.name] = { seatId: ch.seatId || '', palette: ch.palette, hueShift: ch.hueShift }
+  }
+  vscode.postMessage({ type: 'saveAgentNames', names: { ...savedNameMap } })
+}
+
 export function useExtensionMessages(
   getOfficeState: () => OfficeState,
   onLayoutLoaded?: (layout: OfficeLayout) => void,
@@ -74,7 +86,7 @@ export function useExtensionMessages(
 
   useEffect(() => {
     // Buffer agents from existingAgents until layout is loaded
-    let pendingAgents: Array<{ id: number; palette?: number; hueShift?: number; seatId?: string }> = []
+    let pendingAgents: Array<{ id: number; palette?: number; hueShift?: number; seatId?: string; name?: string }> = []
 
     const handler = (e: MessageEvent) => {
       const msg = e.data
@@ -97,20 +109,28 @@ export function useExtensionMessages(
         }
         // Add buffered agents now that layout (and seats) are correct
         for (const p of pendingAgents) {
-          os.addAgent(p.id, p.palette, p.hueShift, p.seatId, true)
+          os.addAgent(p.id, p.palette, p.hueShift, p.seatId, true, p.name)
         }
         pendingAgents = []
         layoutReadyRef.current = true
         setLayoutReady(true)
         if (os.characters.size > 0) {
           saveAgentSeats(os)
+          saveAgentNames(os)
         }
       } else if (msg.type === 'agentCreated') {
         const id = msg.id as number
+        const agentName = (msg.name as string) || ''
+        const nameData = msg.nameData as { seatId: string; palette: number; hueShift: number } | null
         setAgents((prev) => (prev.includes(id) ? prev : [...prev, id]))
         setSelectedAgent(id)
-        os.addAgent(id)
+        if (nameData && nameData.seatId) {
+          os.addAgent(id, nameData.palette, nameData.hueShift, nameData.seatId, false, agentName)
+        } else {
+          os.addAgent(id, undefined, undefined, undefined, false, agentName)
+        }
         saveAgentSeats(os)
+        saveAgentNames(os)
       } else if (msg.type === 'agentClosed') {
         const id = msg.id as number
         setAgents((prev) => prev.filter((a) => a !== id))
@@ -133,6 +153,8 @@ export function useExtensionMessages(
           delete next[id]
           return next
         })
+        // Save name→seat mapping BEFORE removing the character
+        saveAgentNames(os)
         // Remove all sub-agent characters belonging to this agent
         os.removeAllSubagents(id)
         setSubagentCharacters((prev) => prev.filter((s) => s.parentAgentId !== id))
@@ -140,10 +162,23 @@ export function useExtensionMessages(
       } else if (msg.type === 'existingAgents') {
         const incoming = msg.agents as number[]
         const meta = (msg.agentMeta || {}) as Record<number, { palette?: number; hueShift?: number; seatId?: string }>
+        const nameMap = (msg.agentNameMap || {}) as Record<number, string>
+        const agentNamesData = (msg.agentNames || {}) as Record<string, { seatId: string; palette: number; hueShift: number }>
+        // Hydrate savedNameMap with persisted data so closed-agent bindings survive
+        Object.assign(savedNameMap, agentNamesData)
         // Buffer agents — they'll be added in layoutLoaded after seats are built
         for (const id of incoming) {
           const m = meta[id]
-          pendingAgents.push({ id, palette: m?.palette, hueShift: m?.hueShift, seatId: m?.seatId })
+          const agentName = nameMap[id] || ''
+          // If we have name-based data, prefer it over id-based meta
+          const nd = agentName ? agentNamesData[agentName] : null
+          pendingAgents.push({
+            id,
+            palette: nd?.palette ?? m?.palette,
+            hueShift: nd?.hueShift ?? m?.hueShift,
+            seatId: nd?.seatId ?? m?.seatId,
+            name: agentName,
+          })
         }
         setAgents((prev) => {
           const ids = new Set(prev)

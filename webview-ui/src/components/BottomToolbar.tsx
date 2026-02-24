@@ -3,8 +3,10 @@ import { SettingsModal } from './SettingsModal.js'
 
 interface BottomToolbarProps {
   isEditMode: boolean
+  isSeatMode: boolean
   onOpenClaude: () => void
   onToggleEditMode: () => void
+  onToggleSeatMode: () => void
   isDebugMode: boolean
   onToggleDebugMode: () => void
 }
@@ -43,8 +45,10 @@ const btnActive: React.CSSProperties = {
 
 export function BottomToolbar({
   isEditMode,
+  isSeatMode,
   onOpenClaude,
   onToggleEditMode,
+  onToggleSeatMode,
   isDebugMode,
   onToggleDebugMode,
 }: BottomToolbarProps) {
@@ -85,6 +89,22 @@ export function BottomToolbar({
         title="Edit office layout"
       >
         Layout
+      </button>
+      <button
+        onClick={onToggleSeatMode}
+        onMouseEnter={() => setHovered('seat')}
+        onMouseLeave={() => setHovered(null)}
+        style={
+          isSeatMode
+            ? { ...btnActive }
+            : {
+                ...btnBase,
+                background: hovered === 'seat' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+              }
+        }
+        title="Assign agents to desks"
+      >
+        Seats
       </button>
       <div style={{ position: 'relative' }}>
         <button

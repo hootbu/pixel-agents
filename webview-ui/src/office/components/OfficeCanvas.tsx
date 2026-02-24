@@ -15,6 +15,7 @@ interface OfficeCanvasProps {
   officeState: OfficeState
   onClick: (agentId: number) => void
   isEditMode: boolean
+  isSeatMode: boolean
   editorState: EditorState
   onEditorTileAction: (col: number, row: number) => void
   onEditorEraseAction: (col: number, row: number) => void
@@ -28,7 +29,7 @@ interface OfficeCanvasProps {
   panRef: React.MutableRefObject<{ x: number; y: number }>
 }
 
-export function OfficeCanvas({ officeState, onClick, isEditMode, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
+export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
@@ -547,10 +548,70 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, editorState, on
       if (!pos) return
 
       const hitId = officeState.getCharacterAt(pos.worldX, pos.worldY)
+
+      // --- Seat assignment mode ---
+      if (isSeatMode) {
+        if (hitId !== null) {
+          officeState.dismissBubble(hitId)
+          // Toggle selection without opening terminal
+          if (officeState.selectedAgentId === hitId) {
+            officeState.selectedAgentId = null
+            officeState.cameraFollowId = null
+          } else {
+            officeState.selectedAgentId = hitId
+            officeState.cameraFollowId = hitId
+          }
+          return
+        }
+        // No agent hit — check seat click while agent is selected
+        if (officeState.selectedAgentId !== null) {
+          const selectedCh = officeState.characters.get(officeState.selectedAgentId)
+          if (selectedCh && !selectedCh.isSubagent) {
+            const tile = screenToTile(e.clientX, e.clientY)
+            if (tile) {
+              const seatId = officeState.getSeatAtTile(tile.col, tile.row)
+              if (seatId) {
+                const seat = officeState.seats.get(seatId)
+                if (seat && selectedCh) {
+                  if (selectedCh.seatId === seatId) {
+                    officeState.sendToSeat(officeState.selectedAgentId)
+                    officeState.selectedAgentId = null
+                    officeState.cameraFollowId = null
+                    return
+                  } else if (!seat.assigned) {
+                    officeState.reassignSeat(officeState.selectedAgentId, seatId)
+                    officeState.selectedAgentId = null
+                    officeState.cameraFollowId = null
+                    // Persist seat assignments (exclude sub-agents)
+                    const seats: Record<number, { palette: number; seatId: string | null }> = {}
+                    for (const ch of officeState.characters.values()) {
+                      if (ch.isSubagent) continue
+                      seats[ch.id] = { palette: ch.palette, seatId: ch.seatId }
+                    }
+                    vscode.postMessage({ type: 'saveAgentSeats', seats })
+                    // Also persist name → seat mapping
+                    const names: Record<string, { seatId: string; palette: number; hueShift: number }> = {}
+                    for (const ch of officeState.characters.values()) {
+                      if (ch.isSubagent || !ch.name) continue
+                      names[ch.name] = { seatId: ch.seatId || '', palette: ch.palette, hueShift: ch.hueShift }
+                    }
+                    vscode.postMessage({ type: 'saveAgentNames', names })
+                    return
+                  }
+                }
+              }
+            }
+          }
+          // Clicked empty space — deselect
+          officeState.selectedAgentId = null
+          officeState.cameraFollowId = null
+        }
+        return
+      }
+
+      // --- Normal mode ---
       if (hitId !== null) {
-        // Dismiss any active bubble on click
         officeState.dismissBubble(hitId)
-        // Toggle selection: click same agent deselects, different agent selects
         if (officeState.selectedAgentId === hitId) {
           officeState.selectedAgentId = null
           officeState.cameraFollowId = null
@@ -558,51 +619,17 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, editorState, on
           officeState.selectedAgentId = hitId
           officeState.cameraFollowId = hitId
         }
-        onClick(hitId) // still focus terminal
+        onClick(hitId) // focus terminal
         return
       }
 
-      // No agent hit — check seat click while agent is selected
+      // No agent hit — deselect
       if (officeState.selectedAgentId !== null) {
-        const selectedCh = officeState.characters.get(officeState.selectedAgentId)
-        // Skip seat reassignment for sub-agents
-        if (selectedCh && !selectedCh.isSubagent) {
-          const tile = screenToTile(e.clientX, e.clientY)
-          if (tile) {
-            const seatId = officeState.getSeatAtTile(tile.col, tile.row)
-            if (seatId) {
-              const seat = officeState.seats.get(seatId)
-              if (seat && selectedCh) {
-                if (selectedCh.seatId === seatId) {
-                  // Clicked own seat — send agent back to it
-                  officeState.sendToSeat(officeState.selectedAgentId)
-                  officeState.selectedAgentId = null
-                  officeState.cameraFollowId = null
-                  return
-                } else if (!seat.assigned) {
-                  // Clicked available seat — reassign
-                  officeState.reassignSeat(officeState.selectedAgentId, seatId)
-                  officeState.selectedAgentId = null
-                  officeState.cameraFollowId = null
-                  // Persist seat assignments (exclude sub-agents)
-                  const seats: Record<number, { palette: number; seatId: string | null }> = {}
-                  for (const ch of officeState.characters.values()) {
-                    if (ch.isSubagent) continue
-                    seats[ch.id] = { palette: ch.palette, seatId: ch.seatId }
-                  }
-                  vscode.postMessage({ type: 'saveAgentSeats', seats })
-                  return
-                }
-              }
-            }
-          }
-        }
-        // Clicked empty space — deselect
         officeState.selectedAgentId = null
         officeState.cameraFollowId = null
       }
     },
-    [officeState, onClick, screenToWorld, screenToTile, isEditMode],
+    [officeState, onClick, screenToWorld, screenToTile, isEditMode, isSeatMode],
   )
 
   const handleMouseLeave = useCallback(() => {

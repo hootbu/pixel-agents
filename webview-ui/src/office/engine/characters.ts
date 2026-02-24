@@ -46,12 +46,14 @@ export function createCharacter(
   seatId: string | null,
   seat: Seat | null,
   hueShift = 0,
+  name = '',
 ): Character {
   const col = seat ? seat.seatCol : 1
   const row = seat ? seat.seatRow : 1
   const center = tileCenter(col, row)
   return {
     id,
+    name,
     state: CharacterState.TYPE,
     dir: seat ? seat.facingDir : Direction.DOWN,
     x: center.x,

@@ -144,6 +144,7 @@ export interface OfficeLayout {
 
 export interface Character {
   id: number
+  name: string
   state: CharacterState
   dir: Direction
   /** Pixel position */
