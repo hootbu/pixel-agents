@@ -147,15 +147,12 @@ Implemented in this fork:
 
 The original heuristic-based status detection used a fixed 7-second timeout to guess whether an agent was stuck waiting for user permission. This caused frequent false positives — slow tools like Bash commands or MCP integrations would trigger a "Needs approval" bubble even though the tool was still running normally.
 
-This has been completely reworked:
+Key improvements:
 
-- **Adaptive permission timeouts** — instead of a single 7s timer for all tools, the timeout now scales based on tool type. Fast tools (Read, Write, Edit, Glob, Grep) use a 5s window. Network tools (WebFetch, WebSearch) get 15s. Slow tools (Bash) get 20s. Unknown/MCP tools fall back to the original 7s. The system picks the longest timeout among all active non-exempt tools, so a concurrent Bash + Read won't fire prematurely just because Read would normally timeout sooner.
-- **Early completion signals** — the extension now listens to `mcp_progress` status fields (`completed`, `error`) and `hook_progress` `PostToolUse` events to detect tool completion before the formal `tool_result` arrives. When an early signal is received, the tool is marked as handled and the permission timer is cancelled if all active tools are accounted for. This eliminates false permission bubbles for MCP tools that emit completion status.
-- **"Thinking..." indicator** — when Claude is actively processing (between receiving a prompt and producing output), the Task panel now shows "Thinking..." with a blue pulsing dot instead of misleading "Idle". This uses the gap between the `user` record (prompt sent) and the first `assistant` record (response started) to distinguish genuine thinking from actual idleness.
-- **Smarter waiting timer** — the text-idle timer (used for text-only turns where `turn_duration` is never emitted) is no longer reset by every piece of incoming JSONL data. Previously, metadata records like `progress` or `system` events would continuously restart the 5s silence timer, preventing the agent from ever transitioning to "waiting". Now only semantically meaningful records (`assistant`, `user`) reset the timer.
-- **Fallback idle timer after tool completion** — when all tools in a turn complete but `turn_duration` hasn't arrived yet, a 5s fallback timer now kicks in. This catches the ~2% of tool-using turns where `turn_duration` is not emitted, preventing agents from being stuck in "Thinking..." indefinitely.
-- **Correct restore behavior** — characters now default to `isActive: false` on creation, so restored agents after a window reload show "Idle" instead of incorrectly displaying "Thinking...".
-- **Reduced tool completion lag** — tools that received an early completion signal skip the 300ms done-delay, making the UI feel more responsive for MCP-heavy workflows.
+- **Adaptive permission timeouts** — timeout scales by tool type (5s for fast tools, 15s for network, 20s for Bash) instead of a fixed 7s for everything
+- **Early completion signals** — listens to `mcp_progress` and `hook_progress` events to detect tool completion early, eliminating false permission bubbles
+- **"Thinking..." indicator** — Task panel shows "Thinking..." with a blue pulsing dot when Claude is processing, instead of misleading "Idle"
+- **Smarter idle detection** — waiting timer no longer gets reset by metadata records, and a fallback timer catches turns where `turn_duration` is not emitted
 
 Still open for contributions:
 
