@@ -4,7 +4,15 @@ A VS Code extension that turns your AI coding agents into animated pixel art cha
 
 Each Claude Code terminal you open spawns a character that walks around, sits at desks, and visually reflects what the agent is doing — typing when writing code, reading when searching files, waiting when it needs your attention.
 
-Based on the original [Pixel Agents extension](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) by pablodelucca. This fork by **hootbu** adds seat management, task/sub-agent visualization, and other improvements.
+Based on the original [Pixel Agents extension](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) by pablodelucca. This fork is developed by **Emir Yorgun** ([@hootbu](https://github.com/hootbu)) with the following additions:
+
+- Seat management and desk assignment system
+- Task panel with real-time agent activity tracking
+- Sub-agent visualization — Task tool spawns as separate characters linked to their parent
+- Adaptive status detection with "Thinking..." indicator and smarter permission timers
+- Zoom persistence and pixel-perfect 1px zoom steps
+- Panel state retention across tab switches
+- Sound notifications on agent turn completion
 
 ![Pixel Agents screenshot](webview-ui/public/Screenshot.jpg)
 
@@ -173,7 +181,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## Maintainer
 
-This fork is maintained by **hootbu**. Seats, Task panel, sub-agent visualization, and related improvements were added on top of the original project by [pablodelucca](https://github.com/pablodelucca).
+This fork is maintained by **Emir Yorgun** ([@hootbu](https://github.com/hootbu)). All additions listed above were built on top of the original project by [pablodelucca](https://github.com/pablodelucca).
 
 ## Supporting the Original Project
 
