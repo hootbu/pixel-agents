@@ -16,6 +16,7 @@ function getActivityText(
   agentId: number,
   agentTools: Record<number, ToolActivity[]>,
   isActive: boolean,
+  isWaiting: boolean,
 ): string {
   const tools = agentTools[agentId]
   if (tools && tools.length > 0) {
@@ -29,6 +30,7 @@ function getActivityText(
       if (lastTool) return lastTool.status
     }
   }
+  if (isActive && !isWaiting) return 'Thinking...'
   return 'Idle'
 }
 
@@ -93,19 +95,19 @@ export function TaskPanel({
         const ch = officeState.characters.get(id)
         const name = ch?.name || `Agent ${id}`
         const isActive = ch?.isActive ?? false
-        const activityText = getActivityText(id, agentTools, isActive)
+        const isWaiting = agentStatuses[id] === 'waiting'
+        const activityText = getActivityText(id, agentTools, isActive, isWaiting)
 
         const tools = agentTools[id]
         const hasPermission = tools?.some((t) => t.permissionWait && !t.done)
-        const hasActiveTools = tools?.some((t) => !t.done)
 
         let dotColor: string | null = null
         if (hasPermission) {
           dotColor = 'var(--pixel-status-permission)'
-        } else if (isActive && hasActiveTools) {
-          dotColor = 'var(--pixel-status-active)'
-        } else if (agentStatuses[id] === 'waiting') {
+        } else if (isWaiting) {
           dotColor = 'var(--pixel-green, #5ac88c)'
+        } else if (isActive) {
+          dotColor = 'var(--pixel-status-active)'
         }
 
         const subs = subagentCharacters.filter((s) => s.parentAgentId === id)

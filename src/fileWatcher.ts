@@ -59,8 +59,9 @@ export function readNewLines(
 
 		const hasLines = lines.some(l => l.trim());
 		if (hasLines) {
-			// New data arriving — cancel timers (data flowing means agent is still active)
-			cancelWaitingTimer(agentId, waitingTimers);
+			// New data arriving — cancel permission timer (data flowing means tool is not stuck)
+			// NOTE: waiting timer is NOT cancelled here — processTranscriptLine handles it
+			// on assistant/user records to avoid resetting text-only turn detection
 			cancelPermissionTimer(agentId, permissionTimers);
 			if (agent.permissionSent) {
 				agent.permissionSent = false;
@@ -196,6 +197,7 @@ function adoptTerminalForFile(
 		activeToolNames: new Map(),
 		activeSubagentToolIds: new Map(),
 		activeSubagentToolNames: new Map(),
+		earlyCompletionToolIds: new Set(),
 		isWaiting: false,
 		permissionSent: false,
 		hadToolsInTurn: false,

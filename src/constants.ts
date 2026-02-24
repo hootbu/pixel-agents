@@ -4,7 +4,17 @@ export const FILE_WATCHER_POLL_INTERVAL_MS = 2000;
 export const PROJECT_SCAN_INTERVAL_MS = 1000;
 export const TOOL_DONE_DELAY_MS = 300;
 export const PERMISSION_TIMER_DELAY_MS = 7000;
+export const PERMISSION_TIMEOUT_FAST_MS = 5000;
+export const PERMISSION_TIMEOUT_NETWORK_MS = 15000;
+export const PERMISSION_TIMEOUT_SLOW_MS = 20000;
 export const TEXT_IDLE_DELAY_MS = 5000;
+
+export const TOOL_TIMEOUT_CATEGORY: Record<string, 'fast' | 'network' | 'slow'> = {
+	Read: 'fast', Write: 'fast', Edit: 'fast', Glob: 'fast', Grep: 'fast',
+	NotebookEdit: 'fast', EnterPlanMode: 'fast',
+	WebFetch: 'network', WebSearch: 'network',
+	Bash: 'slow',
+};
 
 // ── Display Truncation ──────────────────────────────────────
 export const BASH_COMMAND_DISPLAY_MAX_LENGTH = 30;

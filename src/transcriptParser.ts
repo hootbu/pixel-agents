@@ -56,13 +56,13 @@ export function processTranscriptLine(
 		const record = JSON.parse(line);
 
 		if (record.type === 'assistant' && Array.isArray(record.message?.content)) {
+			cancelWaitingTimer(agentId, waitingTimers);
 			const blocks = record.message.content as Array<{
 				type: string; id?: string; name?: string; input?: Record<string, unknown>;
 			}>;
 			const hasToolUse = blocks.some(b => b.type === 'tool_use');
 
 			if (hasToolUse) {
-				cancelWaitingTimer(agentId, waitingTimers);
 				agent.isWaiting = false;
 				agent.hadToolsInTurn = true;
 				webview?.postMessage({ type: 'agentStatus', id: agentId, status: 'active' });
@@ -118,6 +118,8 @@ export function processTranscriptLine(
 									parentToolId: completedToolId,
 								});
 							}
+							const delay = agent.earlyCompletionToolIds.has(completedToolId) ? 0 : TOOL_DONE_DELAY_MS;
+							agent.earlyCompletionToolIds.delete(completedToolId);
 							agent.activeToolIds.delete(completedToolId);
 							agent.activeToolStatuses.delete(completedToolId);
 							agent.activeToolNames.delete(completedToolId);
@@ -128,13 +130,14 @@ export function processTranscriptLine(
 									id: agentId,
 									toolId,
 								});
-							}, TOOL_DONE_DELAY_MS);
+							}, delay);
 						}
 					}
-					// All tools completed — allow text-idle timer as fallback
-					// for turn-end detection when turn_duration is not emitted
+					// All tools completed — start fallback waiting timer
+					// in case turn_duration is not emitted
 					if (agent.activeToolIds.size === 0) {
 						agent.hadToolsInTurn = false;
+						startWaitingTimer(agentId, TEXT_IDLE_DELAY_MS, agents, waitingTimers, webview);
 					}
 				} else {
 					// New user text prompt — new turn starting
@@ -193,12 +196,43 @@ function processProgressRecord(
 	const data = record.data as Record<string, unknown> | undefined;
 	if (!data) {return;}
 
-	// bash_progress / mcp_progress: tool is actively executing, not stuck on permission.
-	// Restart the permission timer to give the running tool another window.
 	const dataType = data.type as string | undefined;
-	if (dataType === 'bash_progress' || dataType === 'mcp_progress') {
+
+	// hook_progress PostToolUse: tool has finished (hook ran after tool completed)
+	if (dataType === 'hook_progress') {
+		const hookEvent = (data as Record<string, unknown>).hookEvent as string | undefined;
+		if (hookEvent === 'PostToolUse' && parentToolId && agent.activeToolIds.has(parentToolId)) {
+			agent.earlyCompletionToolIds.add(parentToolId);
+			cancelPermissionTimer(agentId, permissionTimers);
+		}
+		return;
+	}
+
+	// bash_progress: tool is actively executing, restart permission timer
+	if (dataType === 'bash_progress') {
 		if (agent.activeToolIds.has(parentToolId)) {
 			startPermissionTimer(agentId, agents, permissionTimers, PERMISSION_EXEMPT_TOOLS, webview);
+		}
+		return;
+	}
+
+	// mcp_progress: check status field for early completion signals
+	if (dataType === 'mcp_progress') {
+		const status = (data as Record<string, unknown>).status as string | undefined;
+		if (status === 'completed' || status === 'error') {
+			agent.earlyCompletionToolIds.add(parentToolId);
+			// Cancel permission timer if all active non-exempt tools are handled
+			const allHandled = [...agent.activeToolIds].every(
+				id => agent.earlyCompletionToolIds.has(id) || PERMISSION_EXEMPT_TOOLS.has(agent.activeToolNames.get(id) || '')
+			);
+			if (allHandled) {
+				cancelPermissionTimer(agentId, permissionTimers);
+			}
+		} else {
+			// status: "started" or other — tool is running, restart permission timer
+			if (agent.activeToolIds.has(parentToolId)) {
+				startPermissionTimer(agentId, agents, permissionTimers, PERMISSION_EXEMPT_TOOLS, webview);
+			}
 		}
 		return;
 	}

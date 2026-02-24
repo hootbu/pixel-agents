@@ -1,6 +1,12 @@
 import type * as vscode from 'vscode';
 import type { AgentState } from './types.js';
-import { PERMISSION_TIMER_DELAY_MS } from './constants.js';
+import {
+	PERMISSION_TIMER_DELAY_MS,
+	PERMISSION_TIMEOUT_FAST_MS,
+	PERMISSION_TIMEOUT_NETWORK_MS,
+	PERMISSION_TIMEOUT_SLOW_MS,
+	TOOL_TIMEOUT_CATEGORY,
+} from './constants.js';
 
 export function clearAgentActivity(
 	agent: AgentState | undefined,
@@ -14,6 +20,7 @@ export function clearAgentActivity(
 	agent.activeToolNames.clear();
 	agent.activeSubagentToolIds.clear();
 	agent.activeSubagentToolNames.clear();
+	agent.earlyCompletionToolIds.clear();
 	agent.isWaiting = false;
 	agent.permissionSent = false;
 	cancelPermissionTimer(agentId, permissionTimers);
@@ -66,6 +73,23 @@ export function cancelPermissionTimer(
 	}
 }
 
+export function getPermissionTimeout(
+	activeToolNames: Map<string, string>,
+	permissionExemptTools: Set<string>,
+): number {
+	let maxTimeout = PERMISSION_TIMEOUT_FAST_MS;
+	for (const [, toolName] of activeToolNames) {
+		if (permissionExemptTools.has(toolName)) {continue;}
+		const category = TOOL_TIMEOUT_CATEGORY[toolName];
+		const timeout = category === 'slow' ? PERMISSION_TIMEOUT_SLOW_MS
+			: category === 'network' ? PERMISSION_TIMEOUT_NETWORK_MS
+			: category === 'fast' ? PERMISSION_TIMEOUT_FAST_MS
+			: PERMISSION_TIMER_DELAY_MS;
+		if (timeout > maxTimeout) {maxTimeout = timeout;}
+	}
+	return maxTimeout;
+}
+
 export function startPermissionTimer(
 	agentId: number,
 	agents: Map<number, AgentState>,
@@ -74,6 +98,8 @@ export function startPermissionTimer(
 	webview: vscode.Webview | undefined,
 ): void {
 	cancelPermissionTimer(agentId, permissionTimers);
+	const currentAgent = agents.get(agentId);
+	const delay = currentAgent ? getPermissionTimeout(currentAgent.activeToolNames, permissionExemptTools) : PERMISSION_TIMER_DELAY_MS;
 	const timer = setTimeout(() => {
 		permissionTimers.delete(agentId);
 		const agent = agents.get(agentId);
@@ -117,6 +143,6 @@ export function startPermissionTimer(
 				});
 			}
 		}
-	}, PERMISSION_TIMER_DELAY_MS);
+	}, delay);
 	permissionTimers.set(agentId, timer);
 }
