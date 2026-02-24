@@ -20,7 +20,7 @@ export function readLayoutFromFile(): Record<string, unknown> | null {
 		const raw = fs.readFileSync(filePath, 'utf-8');
 		return JSON.parse(raw) as Record<string, unknown>;
 	} catch (err) {
-		console.error('[Pixel Agents] Failed to read layout file:', err);
+		console.error('[Pixel Agent] Failed to read layout file:', err);
 		return null;
 	}
 }
@@ -37,7 +37,7 @@ export function writeLayoutToFile(layout: Record<string, unknown>): void {
 		fs.writeFileSync(tmpPath, json, 'utf-8');
 		fs.renameSync(tmpPath, filePath);
 	} catch (err) {
-		console.error('[Pixel Agents] Failed to write layout file:', err);
+		console.error('[Pixel Agent] Failed to write layout file:', err);
 	}
 }
 
@@ -55,14 +55,14 @@ export function migrateAndLoadLayout(
 	// 1. Try file
 	const fromFile = readLayoutFromFile();
 	if (fromFile) {
-		console.log('[Pixel Agents] Layout loaded from file');
+		console.log('[Pixel Agent] Layout loaded from file');
 		return fromFile;
 	}
 
 	// 2. Migrate from workspace state
 	const fromState = context.workspaceState.get<Record<string, unknown>>(WORKSPACE_KEY_LAYOUT);
 	if (fromState) {
-		console.log('[Pixel Agents] Migrating layout from workspace state to file');
+		console.log('[Pixel Agent] Migrating layout from workspace state to file');
 		writeLayoutToFile(fromState);
 		context.workspaceState.update(WORKSPACE_KEY_LAYOUT, undefined);
 		return fromState;
@@ -70,7 +70,7 @@ export function migrateAndLoadLayout(
 
 	// 3. Use bundled default
 	if (defaultLayout) {
-		console.log('[Pixel Agents] Writing bundled default layout to file');
+		console.log('[Pixel Agent] Writing bundled default layout to file');
 		writeLayoutToFile(defaultLayout);
 		return defaultLayout;
 	}
@@ -80,7 +80,7 @@ export function migrateAndLoadLayout(
 }
 
 /**
- * Watch ~/.pixel-agents/layout.json for external changes (other VS Code windows).
+ * Watch ~/.pixel-agent/layout.json for external changes (other VS Code windows).
  * Uses hybrid fs.watch + polling (same pattern as JSONL watching).
  */
 export function watchLayoutFile(
@@ -115,10 +115,10 @@ export function watchLayoutFile(
 
 			const raw = fs.readFileSync(filePath, 'utf-8');
 			const layout = JSON.parse(raw) as Record<string, unknown>;
-			console.log('[Pixel Agents] External layout change detected');
+			console.log('[Pixel Agent] External layout change detected');
 			onExternalChange(layout);
 		} catch (err) {
-			console.error('[Pixel Agents] Error checking layout file:', err);
+			console.error('[Pixel Agent] Error checking layout file:', err);
 		}
 	}
 

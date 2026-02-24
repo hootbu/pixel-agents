@@ -85,11 +85,11 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				}
 			} else if (message.type === 'saveAgentSeats') {
 				// Store seat assignments in a separate key (never touched by persistAgents)
-				console.log(`[Pixel Agents] saveAgentSeats:`, JSON.stringify(message.seats));
+				console.log(`[Pixel Agent] saveAgentSeats:`, JSON.stringify(message.seats));
 				this.context.workspaceState.update(WORKSPACE_KEY_AGENT_SEATS, message.seats);
 			} else if (message.type === 'saveAgentNames') {
 				// Store name → seat/palette mapping for cross-session persistence
-				console.log(`[Pixel Agents] saveAgentNames:`, JSON.stringify(message.names));
+				console.log(`[Pixel Agent] saveAgentNames:`, JSON.stringify(message.names));
 				this.context.workspaceState.update(WORKSPACE_KEY_AGENT_NAMES, message.names);
 			} else if (message.type === 'saveLayout') {
 				this.layoutWatcher?.markOwnWrite();
@@ -237,7 +237,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				}
 				const uri = await vscode.window.showSaveDialog({
 					filters: { 'JSON Files': ['json'] },
-					defaultUri: vscode.Uri.file(path.join(os.homedir(), 'pixel-agents-layout.json')),
+					defaultUri: vscode.Uri.file(path.join(os.homedir(), 'pixel-agent-layout.json')),
 				});
 				if (uri) {
 					fs.writeFileSync(uri.fsPath, JSON.stringify(layout, null, 2), 'utf-8');
@@ -320,7 +320,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 	private startLayoutWatcher(): void {
 		if (this.layoutWatcher) {return;}
 		this.layoutWatcher = watchLayoutFile((layout) => {
-			console.log('[Pixel Agents] External layout change — pushing to webview');
+			console.log('[Pixel Agent] External layout change — pushing to webview');
 			this.webview?.postMessage({ type: 'layoutLoaded', layout });
 		});
 	}
