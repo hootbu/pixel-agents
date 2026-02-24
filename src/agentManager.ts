@@ -10,7 +10,7 @@ import { migrateAndLoadLayout } from './layoutPersistence.js';
 
 export function getProjectDirPath(cwd?: string): string | null {
 	const workspacePath = cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-	if (!workspacePath) return null;
+	if (!workspacePath) {return null;}
 	const dirName = workspacePath.replace(/[:\\/]/g, '-');
 	return path.join(os.homedir(), '.claude', 'projects', dirName);
 }
@@ -36,7 +36,7 @@ export async function launchNewTerminal(
 		prompt: 'Agent name (nickname)',
 		placeHolder: 'e.g. Alice, Bob, Frontend-Dev...',
 	});
-	if (!name) return; // user cancelled
+	if (!name) {return;} // user cancelled
 
 	const idx = nextTerminalIndexRef.current++;
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -121,7 +121,7 @@ export function removeAgent(
 	persistAgents: () => void,
 ): void {
 	const agent = agents.get(agentId);
-	if (!agent) return;
+	if (!agent) {return;}
 
 	// Stop JSONL poll timer
 	const jpTimer = jsonlPollTimers.get(agentId);
@@ -178,7 +178,7 @@ export function restoreAgents(
 	doPersist: () => void,
 ): void {
 	const persisted = context.workspaceState.get<PersistedAgent[]>(WORKSPACE_KEY_AGENTS, []);
-	if (persisted.length === 0) return;
+	if (persisted.length === 0) {return;}
 
 	const liveTerminals = vscode.window.terminals;
 	let maxId = 0;
@@ -187,7 +187,7 @@ export function restoreAgents(
 
 	for (const p of persisted) {
 		const terminal = liveTerminals.find(t => t.name === p.terminalName);
-		if (!terminal) continue;
+		if (!terminal) {continue;}
 
 		const agent: AgentState = {
 			id: p.id,
@@ -211,12 +211,12 @@ export function restoreAgents(
 		knownJsonlFiles.add(p.jsonlFile);
 		console.log(`[Pixel Agents] Restored agent ${p.id} → terminal "${p.terminalName}"`);
 
-		if (p.id > maxId) maxId = p.id;
+		if (p.id > maxId) {maxId = p.id;}
 		// Extract terminal index from name like "Claude Code #3"
 		const match = p.terminalName.match(/#(\d+)$/);
 		if (match) {
 			const idx = parseInt(match[1], 10);
-			if (idx > maxIdx) maxIdx = idx;
+			if (idx > maxIdx) {maxIdx = idx;}
 		}
 
 		restoredProjectDir = p.projectDir;
@@ -272,7 +272,7 @@ export function sendExistingAgents(
 	context: vscode.ExtensionContext,
 	webview: vscode.Webview | undefined,
 ): void {
-	if (!webview) return;
+	if (!webview) {return;}
 	const agentIds: number[] = [];
 	for (const id of agents.keys()) {
 		agentIds.push(id);
@@ -307,7 +307,7 @@ export function sendCurrentAgentStatuses(
 	agents: Map<number, AgentState>,
 	webview: vscode.Webview | undefined,
 ): void {
-	if (!webview) return;
+	if (!webview) {return;}
 	for (const [agentId, agent] of agents) {
 		// Re-send active tools
 		for (const [toolId, status] of agent.activeToolStatuses) {
@@ -334,7 +334,7 @@ export function sendLayout(
 	webview: vscode.Webview | undefined,
 	defaultLayout?: Record<string, unknown> | null,
 ): void {
-	if (!webview) return;
+	if (!webview) {return;}
 	const layout = migrateAndLoadLayout(context, defaultLayout);
 	webview.postMessage({
 		type: 'layoutLoaded',
