@@ -18,6 +18,9 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - **Speech bubbles** — visual indicators when an agent is waiting for input or needs permission
 - **Sound notifications** — optional chime when an agent finishes its turn
 - **Persistent layouts** — your office design is saved and shared across VS Code windows
+- **Zoom persistence** — your chosen zoom level is remembered across sessions and window reloads
+- **Panel state retention** — switching to another panel (e.g. Debug) and back preserves all state — no more layout resets
+- **Pixel-perfect zoom** — zoom in 1px increments with the level displayed in pixels (e.g. 16px)
 - **Diverse characters** — 6 diverse characters with hue-shifted variants
 
 <p align="center">
@@ -117,7 +120,7 @@ The extension will still work without the tileset — you'll get the default cha
 
 Pixel Agents watches Claude Code's JSONL transcript files to track what each agent is doing. When an agent uses a tool (like writing a file or running a command), the extension detects it and updates the character's animation accordingly. No modifications to Claude Code are needed — it's purely observational.
 
-The webview runs a lightweight game loop with canvas rendering, BFS pathfinding, and a character state machine (idle → walk → type/read). Everything is pixel-perfect at integer zoom levels.
+The webview runs a lightweight game loop with canvas rendering, BFS pathfinding, and a character state machine (idle → walk → type/read). Everything is pixel-perfect with 1px zoom increments, and your zoom preference persists across sessions via VS Code's global state.
 
 ## Tech Stack
 
@@ -128,7 +131,7 @@ The webview runs a lightweight game loop with canvas rendering, BFS pathfinding,
 
 - **Agent-terminal sync** — the way agents are connected to Claude Code terminal instances is not super robust and sometimes desyncs, especially when terminals are rapidly opened/closed or restored across sessions.
 - **Heuristic-based status detection** — Claude Code's JSONL transcript format does not provide clear signals for when an agent is waiting for user input or when it has finished its turn. The current detection is based on heuristics (idle timers, turn-duration events) and often misfires — agents may briefly show the wrong status or miss transitions.
-- **Windows-only testing** — the extension has only been tested on Windows 11. It may work on macOS or Linux, but there could be unexpected issues with file watching, paths, or terminal behavior on those platforms.
+- **Windows/macOS testing** — the extension has been tested on Windows 11 and macOS. It may work on Linux, but there could be unexpected issues with file watching, paths, or terminal behavior.
 
 ## Roadmap
 
@@ -136,6 +139,8 @@ Implemented in this fork:
 
 - ~~**Desks as directories / seat assignment**~~ — agents can be assigned to specific desks via Seat Mode
 - ~~**Sub-agent visualization**~~ — Task tool sub-agents spawn as separate characters with real-time tracking
+- ~~**Panel state retention**~~ — webview context is retained when hidden, no more state loss on panel switch
+- ~~**Zoom persistence & pixel-perfect steps**~~ — zoom level saved across sessions, 1px increments, px display
 
 Still open for contributions:
 
