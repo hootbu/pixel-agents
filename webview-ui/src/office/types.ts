@@ -81,6 +81,13 @@ export interface ToolActivity {
   permissionWait?: boolean
 }
 
+export interface PixelTextConfig {
+  text: string
+  fontSize: string    // '3x5' | '5x7'
+  pixelScale: number  // 1, 2, 3
+  textColor: string   // hex e.g. '#FF0000'
+}
+
 export const FurnitureType = {
   // Original hand-drawn sprites (kept for backward compat)
   DESK: 'desk',
@@ -91,6 +98,7 @@ export const FurnitureType = {
   CHAIR: 'chair',
   PC: 'pc',
   LAMP: 'lamp',
+  PIXEL_TEXT: 'pixel_text',
 } as const
 export type FurnitureType = (typeof FurnitureType)[keyof typeof FurnitureType]
 
@@ -130,6 +138,10 @@ export interface PlacedFurniture {
   row: number
   /** Optional color override for furniture */
   color?: FloorColor
+  /** Configuration for pixel_text items */
+  textConfig?: PixelTextConfig
+  /** Z-layer for draw order (0 = normal, positive = in front). Default 0. */
+  zLayer?: number
 }
 
 export interface OfficeLayout {

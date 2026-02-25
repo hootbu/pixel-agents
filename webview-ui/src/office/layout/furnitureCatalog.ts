@@ -1,5 +1,5 @@
 import { FurnitureType } from '../types.js'
-import type { FurnitureCatalogEntry, SpriteData } from '../types.js'
+import type { FurnitureCatalogEntry, SpriteData, PixelTextConfig } from '../types.js'
 import {
   DESK_SQUARE_SPRITE,
   BOOKSHELF_SPRITE,
@@ -10,6 +10,7 @@ import {
   PC_SPRITE,
   LAMP_SPRITE,
 } from '../sprites/spriteData.js'
+import { getTextSprite, getTextFootprint } from '../sprites/textSpriteCache.js'
 
 export interface LoadedAssetData {
   catalog: Array<{
@@ -47,6 +48,28 @@ export const FURNITURE_CATALOG: CatalogEntryWithCategory[] = [
   { type: FurnitureType.CHAIR,      label: 'Chair',      footprintW: 1, footprintH: 1, sprite: CHAIR_SPRITE,        isDesk: false, category: 'chairs' },
   { type: FurnitureType.PC,         label: 'PC',         footprintW: 1, footprintH: 1, sprite: PC_SPRITE,           isDesk: false, category: 'electronics' },
   { type: FurnitureType.LAMP,       label: 'Lamp',       footprintW: 1, footprintH: 1, sprite: LAMP_SPRITE,         isDesk: false, category: 'decor' },
+  { type: FurnitureType.PIXEL_TEXT, label: 'Pixel Text', footprintW: 1, footprintH: 1, sprite: (() => {
+    // "Tx" icon sprite for catalog thumbnail (16x16) - green bg with white T
+    const t = '#FFFFFF', b = '#2A6A2A', g = '#3A8A3A', _ = ''
+    return [
+      [_,b,b,b,b,b,b,b,b,b,b,b,b,b,b,_],
+      [b,g,g,g,g,g,g,g,g,g,g,g,g,g,g,b],
+      [b,g,t,t,t,t,t,t,t,t,t,t,t,t,g,b],
+      [b,g,t,t,t,t,t,t,t,t,t,t,t,t,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,t,t,t,t,g,g,g,g,g,b],
+      [b,g,g,g,g,g,g,g,g,g,g,g,g,g,g,b],
+      [_,b,b,b,b,b,b,b,b,b,b,b,b,b,b,_],
+    ]
+  })(), isDesk: false, category: 'decor' },
 
 ]
 
@@ -209,6 +232,12 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
     if (asset.state === 'on') onStateIds.add(asset.id)
   }
 
+  // Inject built-in pixel_text entry into the asset-based catalog
+  const pixelTextEntry = FURNITURE_CATALOG.find((e) => e.type === FurnitureType.PIXEL_TEXT)
+  if (pixelTextEntry) {
+    allEntries.push(pixelTextEntry)
+  }
+
   // Store full internal catalog (all variants — for getCatalogEntry lookups)
   internalCatalog = allEntries
 
@@ -226,7 +255,8 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
   }
 
   dynamicCatalog = visibleEntries
-  dynamicCategories = Array.from(new Set(visibleEntries.map((e) => e.category)))
+  const categorySet = new Set(visibleEntries.map((e) => e.category))
+  dynamicCategories = Array.from(categorySet)
     .filter((c): c is FurnitureCategory => !!c)
     .sort()
 
@@ -267,6 +297,18 @@ export const FURNITURE_CATEGORIES: Array<{ id: FurnitureCategory; label: string 
   { id: 'wall', label: 'Wall' },
   { id: 'misc', label: 'Misc' },
 ]
+
+// ── Pixel text helpers ──────────────────────────────────────────
+
+/** Returns a catalog entry with dynamic sprite/footprint for pixel_text items. */
+export function getEffectiveCatalogEntry(type: string, textConfig?: PixelTextConfig): CatalogEntryWithCategory | undefined {
+  const entry = getCatalogEntry(type)
+  if (!entry) return undefined
+  if (type !== FurnitureType.PIXEL_TEXT || !textConfig) return entry
+  const sprite = getTextSprite(textConfig)
+  const footprint = getTextFootprint(textConfig)
+  return { ...entry, sprite, footprintW: footprint.w, footprintH: footprint.h }
+}
 
 // ── Rotation helpers ─────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { TileType, FurnitureType, DEFAULT_COLS, DEFAULT_ROWS, TILE_SIZE, Direction } from '../types.js'
 import type { TileType as TileTypeVal, OfficeLayout, PlacedFurniture, Seat, FurnitureInstance, FloorColor } from '../types.js'
-import { getCatalogEntry } from './furnitureCatalog.js'
+import { getCatalogEntry, getEffectiveCatalogEntry } from './furnitureCatalog.js'
 import { getColorizedSprite } from '../colorize.js'
 
 /** Convert flat tile array from layout into 2D grid */
@@ -17,7 +17,11 @@ export function layoutToTileMap(layout: OfficeLayout): TileTypeVal[][] {
 }
 
 /** Convert placed furniture into renderable FurnitureInstance[] */
-export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): FurnitureInstance[] {
+export function layoutToFurnitureInstances(
+  furniture: PlacedFurniture[],
+  tiles?: TileTypeVal[],
+  cols?: number,
+): FurnitureInstance[] {
   // Pre-compute desk zY per tile so surface items can sort in front of desks
   const deskZByTile = new Map<string, number>()
   for (const item of furniture) {
@@ -35,7 +39,10 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
 
   const instances: FurnitureInstance[] = []
   for (const item of furniture) {
-    const entry = getCatalogEntry(item.type)
+    // Use effective entry for pixel_text (dynamic sprite/footprint)
+    const entry = item.type === FurnitureType.PIXEL_TEXT
+      ? getEffectiveCatalogEntry(item.type, item.textConfig)
+      : getCatalogEntry(item.type)
     if (!entry) continue
     const x = item.col * TILE_SIZE
     const y = item.row * TILE_SIZE
@@ -65,9 +72,49 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
       }
     }
 
-    // Colorize sprite if this furniture has a color override
+    // Wall-mounted items render in front of the wall they're on
+    if (entry.canPlaceOnWalls && tiles && cols) {
+      // Scan downward from bottom of footprint to find lowest contiguous WALL tile
+      const bottomRow = item.row + entry.footprintH - 1
+      let lowestWallRow = bottomRow
+      for (let r = bottomRow; r < (tiles.length / cols); r++) {
+        let hasWall = false
+        for (let dc = 0; dc < entry.footprintW; dc++) {
+          const idx = r * cols + (item.col + dc)
+          if (idx >= 0 && idx < tiles.length && tiles[idx] === TileType.WALL) {
+            hasWall = true
+            break
+          }
+        }
+        if (hasWall) lowestWallRow = r
+        else break
+      }
+      zY = (lowestWallRow + 1) * TILE_SIZE + 0.5
+    }
+
+    // Bring-to-front: render above walls but below characters
+    if (item.zLayer && item.zLayer > 0 && tiles && cols) {
+      const bottomRow = item.row + entry.footprintH - 1
+      let lowestWallRow = bottomRow
+      for (let r = bottomRow; r < (tiles.length / cols); r++) {
+        let hasWall = false
+        for (let dc = 0; dc < entry.footprintW; dc++) {
+          const idx = r * cols + (item.col + dc)
+          if (idx >= 0 && idx < tiles.length && tiles[idx] === TileType.WALL) {
+            hasWall = true
+            break
+          }
+        }
+        if (hasWall) lowestWallRow = r
+        else break
+      }
+      const wallZY = (lowestWallRow + 1) * TILE_SIZE + 0.5
+      zY = Math.max(zY, wallZY)
+    }
+
+    // Colorize sprite if this furniture has a color override (skip for pixel_text — color is baked in)
     let sprite = entry.sprite
-    if (item.color) {
+    if (item.color && item.type !== FurnitureType.PIXEL_TEXT) {
       const { h, s, b: bv, c: cv } = item.color
       sprite = getColorizedSprite(`furn-${item.type}-${h}-${s}-${bv}-${cv}-${item.color.colorize ? 1 : 0}`, entry.sprite, item.color)
     }
@@ -82,7 +129,9 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
 export function getBlockedTiles(furniture: PlacedFurniture[], excludeTiles?: Set<string>): Set<string> {
   const tiles = new Set<string>()
   for (const item of furniture) {
-    const entry = getCatalogEntry(item.type)
+    const entry = item.type === FurnitureType.PIXEL_TEXT
+      ? getEffectiveCatalogEntry(item.type, item.textConfig)
+      : getCatalogEntry(item.type)
     if (!entry) continue
     const bgRows = entry.backgroundTiles || 0
     for (let dr = 0; dr < entry.footprintH; dr++) {
@@ -102,7 +151,9 @@ export function getPlacementBlockedTiles(furniture: PlacedFurniture[], excludeUi
   const tiles = new Set<string>()
   for (const item of furniture) {
     if (item.uid === excludeUid) continue
-    const entry = getCatalogEntry(item.type)
+    const entry = item.type === FurnitureType.PIXEL_TEXT
+      ? getEffectiveCatalogEntry(item.type, item.textConfig)
+      : getCatalogEntry(item.type)
     if (!entry) continue
     const bgRows = entry.backgroundTiles || 0
     for (let dr = 0; dr < entry.footprintH; dr++) {

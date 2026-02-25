@@ -49,7 +49,7 @@ export class OfficeState {
     this.tileMap = layoutToTileMap(this.layout)
     this.seats = layoutToSeats(this.layout.furniture)
     this.blockedTiles = getBlockedTiles(this.layout.furniture)
-    this.furniture = layoutToFurnitureInstances(this.layout.furniture)
+    this.furniture = layoutToFurnitureInstances(this.layout.furniture, this.layout.tiles, this.layout.cols)
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles)
   }
 
@@ -541,7 +541,7 @@ export class OfficeState {
     }
 
     if (autoOnTiles.size === 0) {
-      this.furniture = layoutToFurnitureInstances(this.layout.furniture)
+      this.furniture = layoutToFurnitureInstances(this.layout.furniture, this.layout.tiles, this.layout.cols)
       return
     }
 
@@ -564,7 +564,7 @@ export class OfficeState {
       return item
     })
 
-    this.furniture = layoutToFurnitureInstances(modifiedFurniture)
+    this.furniture = layoutToFurnitureInstances(modifiedFurniture, this.layout.tiles, this.layout.cols)
   }
 
   setAgentTool(id: number, tool: string | null): void {
