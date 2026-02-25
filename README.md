@@ -13,6 +13,7 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - Zoom persistence and pixel-perfect 1px zoom steps
 - Panel state retention across tab switches
 - Sound notifications on agent turn completion
+- Pixel text — place custom text on walls with a built-in font renderer and z-layer control
 
 ![Pixel Agents screenshot](webview-ui/public/Screenshot.png)
 
@@ -29,6 +30,7 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - **Zoom persistence** — your chosen zoom level is remembered across sessions and window reloads
 - **Panel state retention** — switching to another panel (e.g. Debug) and back preserves all state — no more layout resets
 - **Pixel-perfect zoom** — zoom in 1px increments with the level displayed in pixels (e.g. 16px)
+- **Pixel text** — place custom pixel art text on walls with configurable font size, scale, and color; z-layer button to render text in front of walls but behind characters
 - **Diverse characters** — 6 diverse characters with hue-shifted variants
 
 <p align="center">
@@ -115,6 +117,8 @@ The built-in editor lets you design your office:
 
 - **Floor** — Full HSB color control
 - **Walls** — Auto-tiling walls with color customization
+- **Pixel text** — place text on walls with two font sizes (3x5, 5x7), adjustable pixel scale (1-3x), and hex color picker; edit button to modify text after placement
+- **Z-layer control** — bring furniture in front of walls while keeping it behind walking characters; toggle with the layer button on selected items
 - **Tools** — Select, paint, erase, place, eyedropper, pick
 - **Undo/Redo** — 50 levels with Ctrl+Z / Ctrl+Y
 - **Export/Import** — Share layouts as JSON files via the Settings modal
@@ -161,6 +165,7 @@ Implemented in this fork:
 - ~~**Panel state retention**~~ — webview context is retained when hidden, no more state loss on panel switch
 - ~~**Zoom persistence & pixel-perfect steps**~~ — zoom level saved across sessions, 1px increments, px display
 - ~~**Better status detection**~~ — smarter agent state transitions with adaptive permission timers, early completion signals, and a new "Thinking..." indicator (see below)
+- ~~**Pixel text & z-layer**~~ — custom pixel art text on walls with font/scale/color options; z-layer toggle to control draw order relative to walls and characters
 
 ### Better Status Detection
 
@@ -226,6 +231,7 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - Yakınlaştırma kalıcılığı ve piksel-mükemmel 1px yakınlaştırma adımları
 - Panel geçişlerinde durum koruma
 - Ajan turu tamamlandığında ses bildirimleri
+- Piksel yazı — yerleşik font oluşturucu ve z-katman kontrolü ile duvarlara özel yazı yerleştirme
 
 ![Pixel Agents ekran görüntüsü](webview-ui/public/Screenshot.png)
 
@@ -242,6 +248,7 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - **Yakınlaştırma kalıcılığı** — seçtiğiniz yakınlaştırma seviyesi oturumlar ve pencere yeniden yüklemeleri arasında hatırlanır
 - **Panel durumu koruma** — başka bir panele (ör. Debug) geçip geri dönmek tüm durumu korur — artık düzen sıfırlanması yok
 - **Piksel-mükemmel yakınlaştırma** — 1px artışlarla yakınlaştırma, seviye piksel olarak görüntülenir (ör. 16px)
+- **Piksel yazı** — duvarlara ayarlanabilir font boyutu, ölçek ve renk ile özel piksel sanat yazısı yerleştirin; z-katman butonu ile yazıyı duvarların önünde ama karakterlerin arkasında gösterin
 - **Çeşitli karakterler** — renk kaydırmalı varyantlarla 6 farklı karakter
 
 <p align="center">
@@ -328,6 +335,8 @@ Yerleşik editör ofisinizi tasarlamanıza olanak tanır:
 
 - **Zemin** — Tam HSB renk kontrolü
 - **Duvarlar** — Renk özelleştirmeli otomatik döşenen duvarlar
+- **Piksel yazı** — iki font boyutu (3x5, 5x7), ayarlanabilir piksel ölçeği (1-3x) ve hex renk seçici ile duvarlara yazı yerleştirin; yerleştirme sonrası düzenleme butonu
+- **Z-katman kontrolü** — mobilyayı yürüyen karakterlerin arkasında tutarak duvarların önüne çıkarın; seçili öğelerdeki katman butonu ile değiştirin
 - **Araçlar** — Seçme, boyama, silme, yerleştirme, damlalık, seçici
 - **Geri Al/Yinele** — Ctrl+Z / Ctrl+Y ile 50 seviye
 - **Dışa/İçe Aktarma** — Ayarlar penceresi üzerinden JSON dosyaları olarak düzen paylaşımı
@@ -374,6 +383,7 @@ Bu fork'ta uygulanmış:
 - ~~**Panel durumu koruma**~~ — webview bağlamı gizlendiğinde korunur, panel geçişinde artık durum kaybı yok
 - ~~**Yakınlaştırma kalıcılığı ve piksel-mükemmel adımlar**~~ — yakınlaştırma seviyesi oturumlar arasında kaydedilir, 1px artışlar, px gösterimi
 - ~~**Daha iyi durum algılama**~~ — uyarlanabilir izin zamanlayıcıları, erken tamamlanma sinyalleri ve yeni "Düşünüyor..." göstergesi ile daha akıllı ajan durum geçişleri (aşağıya bakın)
+- ~~**Piksel yazı ve z-katman**~~ — duvarlara font/ölçek/renk seçenekleriyle özel piksel sanat yazısı; duvarlar ve karakterlere göre çizim sırasını kontrol eden z-katman değiştirici
 
 ### Daha İyi Durum Algılama
 
