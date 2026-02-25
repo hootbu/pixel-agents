@@ -199,17 +199,6 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 This fork is maintained by **Emir Yorgun** ([@hootbu](https://github.com/hootbu)). All additions listed above were built on top of the original project by [pablodelucca](https://github.com/pablodelucca).
 
-## Supporting the Original Project
-
-If you find Pixel Agents useful, consider supporting the original author:
-
-<a href="https://github.com/sponsors/pablodelucca">
-  <img src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=github" alt="GitHub Sponsors">
-</a>
-<a href="https://ko-fi.com/pablodelucca">
-  <img src="https://img.shields.io/badge/Support-Ko--fi-ff5e5b?logo=ko-fi" alt="Ko-fi">
-</a>
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
@@ -416,17 +405,6 @@ Katılmadan önce lütfen [Davranış Kurallarımızı](CODE_OF_CONDUCT.md) okuy
 ## Geliştirici
 
 Bu fork **Emir Yorgun** ([@hootbu](https://github.com/hootbu)) tarafından sürdürülmektedir. Yukarıda listelenen tüm eklemeler, [pablodelucca](https://github.com/pablodelucca) tarafından geliştirilen orijinal proje üzerine inşa edilmiştir.
-
-## Orijinal Projeyi Destekleme
-
-Pixel Agents'ı faydalı buluyorsanız, orijinal yazarı desteklemeyi düşünün:
-
-<a href="https://github.com/sponsors/pablodelucca">
-  <img src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=github" alt="GitHub Sponsors">
-</a>
-<a href="https://ko-fi.com/pablodelucca">
-  <img src="https://img.shields.io/badge/Support-Ko--fi-ff5e5b?logo=ko-fi" alt="Ko-fi">
-</a>
 
 ## Lisans
 
