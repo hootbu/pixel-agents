@@ -27,7 +27,7 @@ export function layoutToFurnitureInstances(
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
     if (!entry || !entry.isDesk) continue
-    const deskZY = item.row * TILE_SIZE + entry.sprite.length
+    const deskZY = (item.row + entry.footprintH) * TILE_SIZE
     for (let dr = 0; dr < entry.footprintH; dr++) {
       for (let dc = 0; dc < entry.footprintW; dc++) {
         const key = `${item.col + dc},${item.row + dr}`
@@ -46,8 +46,7 @@ export function layoutToFurnitureInstances(
     if (!entry) continue
     const x = item.col * TILE_SIZE
     const y = item.row * TILE_SIZE
-    const spriteH = entry.sprite.length
-    let zY = y + spriteH
+    let zY = (item.row + entry.footprintH) * TILE_SIZE
 
     // Chair z-sorting: ensure characters sitting on chairs render correctly
     if (entry.category === 'chairs') {
