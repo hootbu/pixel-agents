@@ -66,6 +66,8 @@ export const GHOST_INVALID_TINT = '#ff0000'
 export const SELECTION_HIGHLIGHT_COLOR = '#007fd4'
 export const DELETE_BUTTON_BG = 'rgba(200, 50, 50, 0.85)'
 export const ROTATE_BUTTON_BG = 'rgba(50, 120, 200, 0.85)'
+export const EDIT_BUTTON_BG = 'rgba(50, 170, 80, 0.85)'
+export const LAYER_BUTTON_BG = 'rgba(180, 140, 50, 0.85)'
 
 // ── Camera ───────────────────────────────────────────────────
 export const CAMERA_FOLLOW_LERP = 0.1

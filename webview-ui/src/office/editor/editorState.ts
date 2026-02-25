@@ -38,6 +38,11 @@ export class EditorState {
   // Dirty flag — true when layout differs from last save
   isDirty = false
 
+  // Pixel text placement pending confirmation
+  pendingTextPlacement: { col: number; row: number } | null = null
+  // Editing an existing pixel_text item
+  editingTextUid: string | null = null
+
   // Drag-to-move state
   dragUid: string | null = null
   dragStartCol = 0
@@ -75,6 +80,7 @@ export class EditorState {
 
   clearSelection(): void {
     this.selectedFurnitureUid = null
+    this.editingTextUid = null
   }
 
   clearGhost(): void {
@@ -110,5 +116,7 @@ export class EditorState {
     this.isDirty = false
     this.dragUid = null
     this.isDragMoving = false
+    this.pendingTextPlacement = null
+    this.editingTextUid = null
   }
 }

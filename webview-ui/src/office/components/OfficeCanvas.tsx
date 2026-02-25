@@ -1,12 +1,12 @@
 import { useRef, useEffect, useCallback } from 'react'
 import type { OfficeState } from '../engine/officeState.js'
 import type { EditorState } from '../editor/editorState.js'
-import type { EditorRenderState, SelectionRenderState, DeleteButtonBounds, RotateButtonBounds } from '../engine/renderer.js'
+import type { EditorRenderState, SelectionRenderState, DeleteButtonBounds, RotateButtonBounds, EditButtonBounds, LayerButtonBounds } from '../engine/renderer.js'
 import { startGameLoop } from '../engine/gameLoop.js'
 import { renderFrame } from '../engine/renderer.js'
-import { TILE_SIZE, EditTool } from '../types.js'
+import { TILE_SIZE, EditTool, FurnitureType } from '../types.js'
 import { CAMERA_FOLLOW_LERP, CAMERA_FOLLOW_SNAP_THRESHOLD, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_SCROLL_THRESHOLD, PAN_MARGIN_FRACTION } from '../../constants.js'
-import { getCatalogEntry, isRotatable } from '../layout/furnitureCatalog.js'
+import { getCatalogEntry, getEffectiveCatalogEntry, isRotatable } from '../layout/furnitureCatalog.js'
 import { canPlaceFurniture, getWallPlacementRow } from '../editor/editorActions.js'
 import { vscode } from '../../vscodeApi.js'
 import { unlockAudio } from '../../notificationSound.js'
@@ -23,22 +23,26 @@ interface OfficeCanvasProps {
   onDeleteSelected: () => void
   onRotateSelected: () => void
   onDragMove: (uid: string, newCol: number, newRow: number) => void
+  onEditText?: (uid: string) => void
+  onLayerToggle?: () => void
   editorTick: number
   zoom: number
   onZoomChange: (zoom: number) => void
   panRef: React.MutableRefObject<{ x: number; y: number }>
 }
 
-export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
+export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, onEditText, onLayerToggle, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
   // Middle-mouse pan state (imperative, no re-renders)
   const isPanningRef = useRef(false)
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0 })
-  // Delete/rotate button bounds (updated each frame by renderer)
+  // Delete/rotate/edit button bounds (updated each frame by renderer)
   const deleteButtonBoundsRef = useRef<DeleteButtonBounds | null>(null)
   const rotateButtonBoundsRef = useRef<RotateButtonBounds | null>(null)
+  const editButtonBoundsRef = useRef<EditButtonBounds | null>(null)
+  const layerButtonBoundsRef = useRef<LayerButtonBounds | null>(null)
   // Right-click erase dragging
   const isEraseDraggingRef = useRef(false)
   // Zoom scroll accumulator for trackpad pinch sensitivity
@@ -111,8 +115,12 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
             selectedH: 0,
             hasSelection: false,
             isRotatable: false,
+            isPixelText: false,
+            selectedZLayer: 0,
             deleteButtonBounds: null,
             rotateButtonBounds: null,
+            editButtonBounds: null,
+            layerButtonBounds: null,
             showGhostBorder,
             ghostBorderHoverCol: showGhostBorder ? editorState.ghostCol : -999,
             ghostBorderHoverRow: showGhostBorder ? editorState.ghostRow : -999,
@@ -120,17 +128,50 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
 
           // Ghost preview for furniture placement
           if (editorState.activeTool === EditTool.FURNITURE_PLACE && editorState.ghostCol >= 0) {
-            const entry = getCatalogEntry(editorState.selectedFurnitureType)
-            if (entry) {
+            if (editorState.selectedFurnitureType === FurnitureType.PIXEL_TEXT) {
+              // Show a small "T" placeholder ghost for pixel_text
               const placementRow = getWallPlacementRow(editorState.selectedFurnitureType, editorState.ghostRow)
-              editorRender.ghostSprite = entry.sprite
+              // Simple "T" icon sprite (16x16)
+              const t = '#FFFFFF'
+              const _ = ''
+              const tSprite = [
+                [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
+                [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
+                [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+                [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+              ]
+              editorRender.ghostSprite = tSprite
               editorRender.ghostRow = placementRow
-              editorRender.ghostValid = canPlaceFurniture(
-                officeState.getLayout(),
-                editorState.selectedFurnitureType,
-                editorState.ghostCol,
-                placementRow,
-              )
+              // Valid on any non-VOID tile (including walls — pixel text can go on walls)
+              const layout = officeState.getLayout()
+              const hoverIdx = editorState.ghostRow * layout.cols + editorState.ghostCol
+              const tileVal = hoverIdx >= 0 && hoverIdx < layout.tiles.length ? layout.tiles[hoverIdx] : undefined
+              editorRender.ghostValid = tileVal !== undefined && tileVal !== 8 /* TileType.VOID */
+            } else {
+              const entry = getCatalogEntry(editorState.selectedFurnitureType)
+              if (entry) {
+                const placementRow = getWallPlacementRow(editorState.selectedFurnitureType, editorState.ghostRow)
+                editorRender.ghostSprite = entry.sprite
+                editorRender.ghostRow = placementRow
+                editorRender.ghostValid = canPlaceFurniture(
+                  officeState.getLayout(),
+                  editorState.selectedFurnitureType,
+                  editorState.ghostCol,
+                  placementRow,
+                )
+              }
             }
           }
 
@@ -138,7 +179,9 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
           if (editorState.isDragMoving && editorState.dragUid && editorState.ghostCol >= 0) {
             const draggedItem = officeState.getLayout().furniture.find((f) => f.uid === editorState.dragUid)
             if (draggedItem) {
-              const entry = getCatalogEntry(draggedItem.type)
+              const entry = draggedItem.type === FurnitureType.PIXEL_TEXT
+                ? getEffectiveCatalogEntry(draggedItem.type, draggedItem.textConfig)
+                : getCatalogEntry(draggedItem.type)
               if (entry) {
                 const ghostCol = editorState.ghostCol - editorState.dragOffsetCol
                 const ghostRow = editorState.ghostRow - editorState.dragOffsetRow
@@ -151,6 +194,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
                   ghostCol,
                   ghostRow,
                   editorState.dragUid,
+                  draggedItem.textConfig,
                 )
               }
             }
@@ -160,7 +204,9 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
           if (editorState.selectedFurnitureUid && !editorState.isDragMoving) {
             const item = officeState.getLayout().furniture.find((f) => f.uid === editorState.selectedFurnitureUid)
             if (item) {
-              const entry = getCatalogEntry(item.type)
+              const entry = item.type === FurnitureType.PIXEL_TEXT
+                ? getEffectiveCatalogEntry(item.type, item.textConfig)
+                : getCatalogEntry(item.type)
               if (entry) {
                 editorRender.hasSelection = true
                 editorRender.selectedCol = item.col
@@ -168,6 +214,8 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
                 editorRender.selectedW = entry.footprintW
                 editorRender.selectedH = entry.footprintH
                 editorRender.isRotatable = isRotatable(item.type)
+                editorRender.isPixelText = item.type === FurnitureType.PIXEL_TEXT
+                editorRender.selectedZLayer = item.zLayer || 0
               }
             }
           }
@@ -222,9 +270,11 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
         )
         offsetRef.current = { x: offsetX, y: offsetY }
 
-        // Store delete/rotate button bounds for hit-testing
+        // Store delete/rotate/edit/layer button bounds for hit-testing
         deleteButtonBoundsRef.current = editorRender?.deleteButtonBounds ?? null
         rotateButtonBoundsRef.current = editorRender?.rotateButtonBounds ?? null
+        editButtonBoundsRef.current = editorRender?.editButtonBounds ?? null
+        layerButtonBoundsRef.current = editorRender?.layerButtonBounds ?? null
       },
     })
 
@@ -291,6 +341,24 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
     return (dx * dx + dy * dy) <= (bounds.radius + 2) * (bounds.radius + 2)
   }, [])
 
+  // Check if device-pixel coords hit the edit button
+  const hitTestEditButton = useCallback((deviceX: number, deviceY: number): boolean => {
+    const bounds = editButtonBoundsRef.current
+    if (!bounds) return false
+    const dx = deviceX - bounds.cx
+    const dy = deviceY - bounds.cy
+    return (dx * dx + dy * dy) <= (bounds.radius + 2) * (bounds.radius + 2)
+  }, [])
+
+  // Check if device-pixel coords hit the layer button
+  const hitTestLayerButton = useCallback((deviceX: number, deviceY: number): boolean => {
+    const bounds = layerButtonBoundsRef.current
+    if (!bounds) return false
+    const dx = deviceX - bounds.cx
+    const dy = deviceY - bounds.cy
+    return (dx * dx + dy * dy) <= (bounds.radius + 2) * (bounds.radius + 2)
+  }, [])
+
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       // Handle middle-mouse panning
@@ -341,13 +409,13 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
             canvas.style.cursor = 'grabbing'
           } else {
             const pos = screenToWorld(e.clientX, e.clientY)
-            if (pos && (hitTestDeleteButton(pos.deviceX, pos.deviceY) || hitTestRotateButton(pos.deviceX, pos.deviceY))) {
+            if (pos && (hitTestDeleteButton(pos.deviceX, pos.deviceY) || hitTestRotateButton(pos.deviceX, pos.deviceY) || hitTestEditButton(pos.deviceX, pos.deviceY) || hitTestLayerButton(pos.deviceX, pos.deviceY))) {
               canvas.style.cursor = 'pointer'
             } else if (editorState.activeTool === EditTool.FURNITURE_PICK && tile) {
               // Pick mode: show pointer over furniture, crosshair elsewhere
               const layout = officeState.getLayout()
               const hitFurniture = layout.furniture.find((f) => {
-                const entry = getCatalogEntry(f.type)
+                const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
                 if (!entry) return false
                 return tile.col >= f.col && tile.col < f.col + entry.footprintW && tile.row >= f.row && tile.row < f.row + entry.footprintH
               })
@@ -356,7 +424,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
               // Check if hovering over furniture
               const layout = officeState.getLayout()
               const hitFurniture = layout.furniture.find((f) => {
-                const entry = getCatalogEntry(f.type)
+                const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
                 if (!entry) return false
                 return tile.col >= f.col && tile.col < f.col + entry.footprintW && tile.row >= f.row && tile.row < f.row + entry.footprintH
               })
@@ -396,7 +464,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
       }
       officeState.hoveredAgentId = hitId
     },
-    [officeState, screenToWorld, screenToTile, isEditMode, editorState, onEditorTileAction, onEditorEraseAction, panRef, hitTestDeleteButton, hitTestRotateButton, clampPan],
+    [officeState, screenToWorld, screenToTile, isEditMode, editorState, onEditorTileAction, onEditorEraseAction, panRef, hitTestDeleteButton, hitTestRotateButton, hitTestEditButton, hitTestLayerButton, clampPan],
   )
 
   const handleMouseDown = useCallback(
@@ -434,8 +502,20 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
 
       if (!isEditMode) return
 
-      // Check rotate/delete button hit first
+      // Check rotate/delete/edit button hit first
       const pos = screenToWorld(e.clientX, e.clientY)
+      if (pos && hitTestLayerButton(pos.deviceX, pos.deviceY)) {
+        if (editorState.selectedFurnitureUid && onLayerToggle) {
+          onLayerToggle()
+        }
+        return
+      }
+      if (pos && hitTestEditButton(pos.deviceX, pos.deviceY)) {
+        if (editorState.selectedFurnitureUid && onEditText) {
+          onEditText(editorState.selectedFurnitureUid)
+        }
+        return
+      }
       if (pos && hitTestRotateButton(pos.deviceX, pos.deviceY)) {
         onRotateSelected()
         return
@@ -455,7 +535,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
         // Find all furniture at clicked tile, prefer surface items (on top of desks)
         let hitFurniture = null as typeof layout.furniture[0] | null
         for (const f of layout.furniture) {
-          const entry = getCatalogEntry(f.type)
+          const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
           if (!entry) continue
           if (tile.col >= f.col && tile.col < f.col + entry.footprintW && tile.row >= f.row && tile.row < f.row + entry.footprintH) {
             if (!hitFurniture || entry.canPlaceOnSurfaces) hitFurniture = f
@@ -484,7 +564,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
         onEditorTileAction(tile.col, tile.row)
       }
     },
-    [officeState, isEditMode, editorState, screenToTile, screenToWorld, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, hitTestDeleteButton, hitTestRotateButton, panRef],
+    [officeState, isEditMode, editorState, screenToTile, screenToWorld, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onEditText, onLayerToggle, hitTestDeleteButton, hitTestRotateButton, hitTestEditButton, hitTestLayerButton, panRef],
   )
 
   const handleMouseUp = useCallback(
@@ -514,6 +594,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
               ghostCol,
               ghostRow,
               editorState.dragUid,
+              draggedItem.textConfig,
             )
             if (valid) {
               onDragMove(editorState.dragUid, ghostCol, ghostRow)

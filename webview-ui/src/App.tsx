@@ -15,6 +15,7 @@ import { ZoomControls } from './components/ZoomControls.js'
 import { BottomToolbar } from './components/BottomToolbar.js'
 import { DebugView } from './components/DebugView.js'
 import { TaskPanel } from './components/TaskPanel.js'
+import { PixelTextEditor } from './office/editor/PixelTextEditor.js'
 
 // Game state lives outside React — updated imperatively by message handlers
 const officeStateRef = { current: null as OfficeState | null }
@@ -222,6 +223,8 @@ function App() {
         onDeleteSelected={editor.handleDeleteSelected}
         onRotateSelected={editor.handleRotateSelected}
         onDragMove={editor.handleDragMove}
+        onEditText={editor.handleEditText}
+        onLayerToggle={editor.handleLayerToggle}
         editorTick={editor.editorTick}
         zoom={editor.zoom}
         onZoomChange={editor.handleZoomChange}
@@ -323,6 +326,30 @@ function App() {
             onSelectedFurnitureColorChange={editor.handleSelectedFurnitureColorChange}
             onFurnitureTypeChange={editor.handleFurnitureTypeChange}
             loadedAssets={loadedAssets}
+          />
+        )
+      })()}
+
+      {/* Pixel Text Editor modal */}
+      {editor.isEditMode && (() => {
+        const pending = editorState.pendingTextPlacement
+        const editingUid = editorState.editingTextUid
+        if (!pending && !editingUid) return null
+
+        let initialConfig = undefined
+        if (editingUid) {
+          const layout = officeState.getLayout()
+          const item = layout.furniture.find((f) => f.uid === editingUid)
+          if (item?.textConfig) {
+            initialConfig = item.textConfig
+          }
+        }
+
+        return (
+          <PixelTextEditor
+            initialConfig={initialConfig}
+            onConfirm={editor.handleTextConfirm}
+            onCancel={editor.handleTextCancel}
           />
         )
       })()}

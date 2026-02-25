@@ -38,6 +38,8 @@ import {
   SELECTION_HIGHLIGHT_COLOR,
   DELETE_BUTTON_BG,
   ROTATE_BUTTON_BG,
+  EDIT_BUTTON_BG,
+  LAYER_BUTTON_BG,
 } from '../../constants.js'
 
 // ── Render functions ────────────────────────────────────────────
@@ -445,6 +447,106 @@ export function renderRotateButton(
   return { cx, cy, radius }
 }
 
+export function renderEditButton(
+  ctx: CanvasRenderingContext2D,
+  col: number,
+  row: number,
+  _w: number,
+  h: number,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+): EditButtonBounds {
+  const s = TILE_SIZE * zoom
+  // Position at bottom-left corner of selected furniture
+  const radius = Math.max(BUTTON_MIN_RADIUS, zoom * BUTTON_RADIUS_ZOOM_FACTOR)
+  const cx = offsetX + col * s - 1
+  const cy = offsetY + (row + h) * s + 1
+
+  // Circle background
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fillStyle = EDIT_BUTTON_BG
+  ctx.fill()
+
+  // Pencil icon (simplified)
+  ctx.strokeStyle = '#fff'
+  ctx.lineWidth = Math.max(BUTTON_LINE_WIDTH_MIN, zoom * BUTTON_LINE_WIDTH_ZOOM_FACTOR)
+  ctx.lineCap = 'round'
+  const iconSize = radius * BUTTON_ICON_SIZE_FACTOR
+  // Diagonal pencil line
+  ctx.beginPath()
+  ctx.moveTo(cx - iconSize, cy + iconSize)
+  ctx.lineTo(cx + iconSize, cy - iconSize)
+  ctx.stroke()
+  // Small base tick
+  ctx.beginPath()
+  ctx.moveTo(cx - iconSize, cy + iconSize)
+  ctx.lineTo(cx - iconSize * 0.4, cy + iconSize * 0.4)
+  ctx.stroke()
+  ctx.restore()
+
+  return { cx, cy, radius }
+}
+
+export function renderLayerButton(
+  ctx: CanvasRenderingContext2D,
+  col: number,
+  row: number,
+  w: number,
+  h: number,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+  isLayered: boolean,
+): LayerButtonBounds {
+  const s = TILE_SIZE * zoom
+  // Position at bottom-right corner of selected furniture
+  const radius = Math.max(BUTTON_MIN_RADIUS, zoom * BUTTON_RADIUS_ZOOM_FACTOR)
+  const cx = offsetX + (col + w) * s + 1
+  const cy = offsetY + (row + h) * s + 1
+
+  // Circle background
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fillStyle = LAYER_BUTTON_BG
+  ctx.fill()
+
+  // Arrow icon: up arrow when normal (bring to front), down arrow when layered (send to back)
+  ctx.strokeStyle = '#fff'
+  ctx.lineWidth = Math.max(BUTTON_LINE_WIDTH_MIN, zoom * BUTTON_LINE_WIDTH_ZOOM_FACTOR)
+  ctx.lineCap = 'round'
+  const iconSize = radius * BUTTON_ICON_SIZE_FACTOR
+  if (!isLayered) {
+    // Up arrow (bring to front)
+    ctx.beginPath()
+    ctx.moveTo(cx, cy + iconSize)
+    ctx.lineTo(cx, cy - iconSize)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx - iconSize * 0.7, cy - iconSize * 0.3)
+    ctx.lineTo(cx, cy - iconSize)
+    ctx.lineTo(cx + iconSize * 0.7, cy - iconSize * 0.3)
+    ctx.stroke()
+  } else {
+    // Down arrow (send to back)
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - iconSize)
+    ctx.lineTo(cx, cy + iconSize)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx - iconSize * 0.7, cy + iconSize * 0.3)
+    ctx.lineTo(cx, cy + iconSize)
+    ctx.lineTo(cx + iconSize * 0.7, cy + iconSize * 0.3)
+    ctx.stroke()
+  }
+  ctx.restore()
+
+  return { cx, cy, radius }
+}
+
 // ── Character names ─────────────────────────────────────────────
 
 export function renderCharacterNames(
@@ -530,6 +632,8 @@ export interface ButtonBounds {
 
 export type DeleteButtonBounds = ButtonBounds
 export type RotateButtonBounds = ButtonBounds
+export type EditButtonBounds = ButtonBounds
+export type LayerButtonBounds = ButtonBounds
 
 export interface EditorRenderState {
   showGrid: boolean
@@ -543,10 +647,18 @@ export interface EditorRenderState {
   selectedH: number
   hasSelection: boolean
   isRotatable: boolean
+  /** Whether the selected item is a pixel_text (show edit button) */
+  isPixelText: boolean
+  /** Z-layer of the selected item (0 = normal) */
+  selectedZLayer: number
   /** Updated each frame by renderDeleteButton */
   deleteButtonBounds: DeleteButtonBounds | null
   /** Updated each frame by renderRotateButton */
   rotateButtonBounds: RotateButtonBounds | null
+  /** Updated each frame by renderEditButton */
+  editButtonBounds: EditButtonBounds | null
+  /** Updated each frame by renderLayerButton */
+  layerButtonBounds: LayerButtonBounds | null
   /** Whether to show ghost border (expansion tiles outside grid) */
   showGhostBorder: boolean
   /** Hovered ghost border tile col (-1 to cols) */
@@ -638,9 +750,17 @@ export function renderFrame(
       } else {
         editor.rotateButtonBounds = null
       }
+      if (editor.isPixelText) {
+        editor.editButtonBounds = renderEditButton(ctx, editor.selectedCol, editor.selectedRow, editor.selectedW, editor.selectedH, offsetX, offsetY, zoom)
+      } else {
+        editor.editButtonBounds = null
+      }
+      editor.layerButtonBounds = renderLayerButton(ctx, editor.selectedCol, editor.selectedRow, editor.selectedW, editor.selectedH, offsetX, offsetY, zoom, editor.selectedZLayer > 0)
     } else {
       editor.deleteButtonBounds = null
       editor.rotateButtonBounds = null
+      editor.editButtonBounds = null
+      editor.layerButtonBounds = null
     }
   }
 

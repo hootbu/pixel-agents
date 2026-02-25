@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef } from 'react'
 import type { OfficeState } from '../office/engine/officeState.js'
 import type { EditorState } from '../office/editor/editorState.js'
-import { EditTool } from '../office/types.js'
+import { EditTool, FurnitureType } from '../office/types.js'
 import { TileType } from '../office/types.js'
-import type { OfficeLayout, EditTool as EditToolType, TileType as TileTypeVal, FloorColor, PlacedFurniture } from '../office/types.js'
+import type { OfficeLayout, EditTool as EditToolType, TileType as TileTypeVal, FloorColor, PlacedFurniture, PixelTextConfig } from '../office/types.js'
 import { paintTile, placeFurniture, removeFurniture, moveFurniture, rotateFurniture, toggleFurnitureState, canPlaceFurniture, getWallPlacementRow, expandLayout } from '../office/editor/editorActions.js'
 import type { ExpandDirection } from '../office/editor/editorActions.js'
-import { getCatalogEntry, getRotatedType, getToggledType } from '../office/layout/furnitureCatalog.js'
+import { getEffectiveCatalogEntry, getRotatedType, getToggledType } from '../office/layout/furnitureCatalog.js'
 import { defaultZoom } from '../office/toolUtils.js'
 import { vscode } from '../vscodeApi.js'
 import { LAYOUT_SAVE_DEBOUNCE_MS, ZOOM_MIN, ZOOM_MAX, TILE_SIZE } from '../constants.js'
@@ -40,6 +40,10 @@ export interface EditorActions {
   handleEditorEraseAction: (col: number, row: number) => void
   handleEditorSelectionChange: () => void
   handleDragMove: (uid: string, newCol: number, newRow: number) => void
+  handleTextConfirm: (config: PixelTextConfig) => void
+  handleTextCancel: () => void
+  handleEditText: (uid: string) => void
+  handleLayerToggle: () => void
 }
 
 export function useEditorActions(
@@ -427,11 +431,16 @@ export function useEditorActions(
       if (type === '') {
         // No item selected — act like SELECT (find furniture hit)
         const hit = layout.furniture.find((f) => {
-          const entry = getCatalogEntry(f.type)
+          const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
           if (!entry) return false
           return col >= f.col && col < f.col + entry.footprintW && row >= f.row && row < f.row + entry.footprintH
         })
         editorState.selectedFurnitureUid = hit ? hit.uid : null
+        setEditorTick((n) => n + 1)
+      } else if (type === FurnitureType.PIXEL_TEXT) {
+        // Pixel text: open text editor modal instead of placing immediately
+        const placementRow = getWallPlacementRow(type, row)
+        editorState.pendingTextPlacement = { col, row: placementRow }
         setEditorTick((n) => n + 1)
       } else {
         const placementRow = getWallPlacementRow(type, row)
@@ -449,7 +458,7 @@ export function useEditorActions(
     } else if (editorState.activeTool === EditTool.FURNITURE_PICK) {
       // Find furniture at clicked tile, copy its type and color for placement
       const hit = layout.furniture.find((f) => {
-        const entry = getCatalogEntry(f.type)
+        const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
         if (!entry) return false
         return col >= f.col && col < f.col + entry.footprintW && row >= f.row && row < f.row + entry.footprintH
       })
@@ -480,7 +489,7 @@ export function useEditorActions(
       setEditorTick((n) => n + 1)
     } else if (editorState.activeTool === EditTool.SELECT) {
       const hit = layout.furniture.find((f) => {
-        const entry = getCatalogEntry(f.type)
+        const entry = getEffectiveCatalogEntry(f.type, f.textConfig)
         if (!entry) return false
         return col >= f.col && col < f.col + entry.footprintW && row >= f.row && row < f.row + entry.footprintH
       })
@@ -501,6 +510,73 @@ export function useEditorActions(
       applyEdit(newLayout)
     }
   }, [getOfficeState, applyEdit])
+
+  // ── Pixel text handlers ─────────────────────────────────────────
+  const handleTextConfirm = useCallback((config: PixelTextConfig) => {
+    const os = getOfficeState()
+    const layout = os.getLayout()
+
+    if (editorState.editingTextUid) {
+      // Update existing text item
+      const uid = editorState.editingTextUid
+      const newFurniture = layout.furniture.map((f) =>
+        f.uid === uid ? { ...f, textConfig: config } : f,
+      )
+      const newLayout = { ...layout, furniture: newFurniture }
+      applyEdit(newLayout)
+      editorState.editingTextUid = null
+    } else if (editorState.pendingTextPlacement) {
+      // Place new text item
+      const { col, row } = editorState.pendingTextPlacement
+      const placementRow = getWallPlacementRow(FurnitureType.PIXEL_TEXT, row, config)
+      if (!canPlaceFurniture(layout, FurnitureType.PIXEL_TEXT, col, placementRow, undefined, config)) {
+        editorState.pendingTextPlacement = null
+        setEditorTick((n) => n + 1)
+        return
+      }
+      const uid = `f-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      const placed: PlacedFurniture = {
+        uid,
+        type: FurnitureType.PIXEL_TEXT,
+        col,
+        row: placementRow,
+        textConfig: config,
+      }
+      const newLayout = placeFurniture(layout, placed)
+      if (newLayout !== layout) {
+        applyEdit(newLayout)
+      }
+      editorState.pendingTextPlacement = null
+    }
+    setEditorTick((n) => n + 1)
+  }, [getOfficeState, editorState, applyEdit])
+
+  const handleTextCancel = useCallback(() => {
+    editorState.pendingTextPlacement = null
+    editorState.editingTextUid = null
+    setEditorTick((n) => n + 1)
+  }, [editorState])
+
+  const handleEditText = useCallback((uid: string) => {
+    editorState.editingTextUid = uid
+    setEditorTick((n) => n + 1)
+  }, [editorState])
+
+  const handleLayerToggle = useCallback(() => {
+    const uid = editorState.selectedFurnitureUid
+    if (!uid) return
+    const os = getOfficeState()
+    const layout = os.getLayout()
+    const item = layout.furniture.find((f) => f.uid === uid)
+    if (!item) return
+    const currentLayer = item.zLayer || 0
+    const newLayer = currentLayer > 0 ? 0 : 1
+    const newFurniture = layout.furniture.map((f) =>
+      f.uid === uid ? { ...f, zLayer: newLayer || undefined } : f,
+    )
+    const newLayout = { ...layout, furniture: newFurniture }
+    applyEdit(newLayout)
+  }, [getOfficeState, editorState, applyEdit])
 
   return {
     isEditMode,
@@ -531,5 +607,9 @@ export function useEditorActions(
     handleEditorEraseAction,
     handleEditorSelectionChange,
     handleDragMove,
+    handleTextConfirm,
+    handleTextCancel,
+    handleEditText,
+    handleLayerToggle,
   }
 }

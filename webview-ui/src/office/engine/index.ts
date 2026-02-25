@@ -10,5 +10,6 @@ export {
   renderGhostPreview,
   renderSelectionHighlight,
   renderDeleteButton,
+  renderEditButton,
 } from './renderer.js'
-export type { EditorRenderState, SelectionRenderState, DeleteButtonBounds } from './renderer.js'
+export type { EditorRenderState, SelectionRenderState, DeleteButtonBounds, EditButtonBounds } from './renderer.js'

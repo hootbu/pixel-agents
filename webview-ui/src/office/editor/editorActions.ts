@@ -1,7 +1,7 @@
-import { TileType, MAX_COLS, MAX_ROWS } from '../types.js'
+import { TileType, FurnitureType, MAX_COLS, MAX_ROWS } from '../types.js'
 import { DEFAULT_NEUTRAL_COLOR } from '../../constants.js'
-import type { TileType as TileTypeVal, OfficeLayout, PlacedFurniture, FloorColor } from '../types.js'
-import { getCatalogEntry, getRotatedType, getToggledType } from '../layout/furnitureCatalog.js'
+import type { TileType as TileTypeVal, OfficeLayout, PlacedFurniture, FloorColor, PixelTextConfig } from '../types.js'
+import { getCatalogEntry, getRotatedType, getToggledType, getEffectiveCatalogEntry } from '../layout/furnitureCatalog.js'
 import { getPlacementBlockedTiles } from '../layout/layoutSerializer.js'
 
 /** Paint a single tile with pattern and color. Returns new layout (immutable). */
@@ -31,7 +31,7 @@ export function paintTile(layout: OfficeLayout, col: number, row: number, tileTy
 
 /** Place furniture. Returns new layout (immutable). */
 export function placeFurniture(layout: OfficeLayout, item: PlacedFurniture): OfficeLayout {
-  if (!canPlaceFurniture(layout, item.type, item.col, item.row)) return layout
+  if (!canPlaceFurniture(layout, item.type, item.col, item.row, undefined, item.textConfig)) return layout
   return { ...layout, furniture: [...layout.furniture, item] }
 }
 
@@ -46,7 +46,7 @@ export function removeFurniture(layout: OfficeLayout, uid: string): OfficeLayout
 export function moveFurniture(layout: OfficeLayout, uid: string, newCol: number, newRow: number): OfficeLayout {
   const item = layout.furniture.find((f) => f.uid === uid)
   if (!item) return layout
-  if (!canPlaceFurniture(layout, item.type, newCol, newRow, uid)) return layout
+  if (!canPlaceFurniture(layout, item.type, newCol, newRow, uid, item.textConfig)) return layout
   return {
     ...layout,
     furniture: layout.furniture.map((f) => (f.uid === uid ? { ...f, col: newCol, row: newRow } : f)),
@@ -78,8 +78,10 @@ export function toggleFurnitureState(layout: OfficeLayout, uid: string): OfficeL
 }
 
 /** For wall items, offset the row so the bottom row aligns with the hovered tile. */
-export function getWallPlacementRow(type: string, row: number): number {
-  const entry = getCatalogEntry(type)
+export function getWallPlacementRow(type: string, row: number, textConfig?: PixelTextConfig): number {
+  const entry = type === FurnitureType.PIXEL_TEXT && textConfig
+    ? getEffectiveCatalogEntry(type, textConfig)
+    : getCatalogEntry(type)
   if (!entry?.canPlaceOnWalls) return row
   return row - (entry.footprintH - 1)
 }
@@ -91,8 +93,11 @@ export function canPlaceFurniture(
   col: number,
   row: number,
   excludeUid?: string,
+  textConfig?: PixelTextConfig,
 ): boolean {
-  const entry = getCatalogEntry(type)
+  const entry = type === FurnitureType.PIXEL_TEXT && textConfig
+    ? getEffectiveCatalogEntry(type, textConfig)
+    : getCatalogEntry(type)
   if (!entry) return false
 
   // Check bounds — wall items may extend above the map (top rows hang above the wall)
@@ -118,10 +123,16 @@ export function canPlaceFurniture(
       const idx = (row + dr) * layout.cols + (col + dc)
       const tileVal = layout.tiles[idx]
       if (entry.canPlaceOnWalls) {
-        if (tileVal !== TileType.WALL) return false
+        if (tileVal !== TileType.WALL) {
+          // Allow placement on VOID directly above a WALL tile (visual wall area)
+          const belowIdx = (row + dr + 1) * layout.cols + (col + dc)
+          if (belowIdx < 0 || belowIdx >= layout.tiles.length || layout.tiles[belowIdx] !== TileType.WALL) {
+            return false
+          }
+        }
       } else {
         if (tileVal === TileType.VOID) return false // Cannot place on VOID
-        if (tileVal === TileType.WALL) return false // Normal items cannot overlap walls
+        if (tileVal === TileType.WALL && type !== FurnitureType.PIXEL_TEXT) return false // Normal items cannot overlap walls (pixel_text can)
       }
     }
   }
@@ -157,6 +168,17 @@ export function canPlaceFurniture(
   }
 
   return true
+}
+
+/** Compute contiguous wall width from a position (for max text width validation). */
+export function getWallSpan(layout: OfficeLayout, col: number, row: number): number {
+  let width = 0
+  for (let c = col; c < layout.cols; c++) {
+    const idx = row * layout.cols + c
+    if (layout.tiles[idx] !== TileType.WALL) break
+    width++
+  }
+  return width
 }
 
 export type ExpandDirection = 'left' | 'right' | 'up' | 'down'
