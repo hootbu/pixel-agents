@@ -14,6 +14,10 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - Panel state retention across tab switches
 - Sound notifications on agent turn completion
 - Pixel text — place custom text on walls with a built-in font renderer and z-layer control
+- Real-time token usage panel with per-agent breakdown and color-coded progress bars
+- Mood reactions — happy, error, and stressed emoji bubbles based on agent activity
+- Achievement system — 8 unlockable achievements with progress tracking and gallery
+- Office pets — cats and dogs with AI behaviors, configurable via Settings
 
 ![Pixel Agents screenshot](webview-ui/public/Screenshot.png)
 
@@ -31,6 +35,10 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - **Panel state retention** — switching to another panel (e.g. Debug) and back preserves all state — no more layout resets
 - **Pixel-perfect zoom** — zoom in 1px increments with the level displayed in pixels (e.g. 16px)
 - **Pixel text** — place custom pixel art text on walls with configurable font size, scale, and color; z-layer button to render text in front of walls but behind characters
+- **Token usage panel** — real-time token tracking with per-agent breakdown, stacked color-coded progress bars (Input/Output/Cache Write/Cache Read), and formatted totals
+- **Mood reactions** — agents show emoji bubbles (happy on turn complete, error on failures, stressed on long turns)
+- **Achievements** — 8 unlockable achievements with toast notifications and gallery view in Settings
+- **Office pets** — cats and dogs roam the office with AI-driven behaviors (wander, approach idle agents, sleep, flee active agents); up to 5 pets configurable in Settings
 - **Diverse characters** — 6 diverse characters with hue-shifted variants
 
 <p align="center">
@@ -62,6 +70,32 @@ The Task panel (toggle via the button in the bottom-right toolbar) shows all act
 
 Sub-agents inherit their parent's character palette and are placed at the closest free seat.
 
+## Achievements
+
+Pixel Agents includes 8 unlockable achievements that track your usage:
+
+- **First Agent** — spawn your first agent
+- **Team Player** — have 3+ agents running simultaneously
+- **Token Millionaire** — use 1 million tokens across all agents
+- **Night Owl** — use agents after midnight
+- **Bug Squasher** — complete 10 agent turns
+- **Architect** — customize your office layout
+- **Marathon** — accumulate 1 hour of agent runtime
+- **Decorator** — place 20+ furniture items
+
+Achievements appear as toast notifications when unlocked. View all achievements and progress in the gallery, accessible from the Settings modal.
+
+## Office Pets
+
+Add cats and dogs to your office — they roam around with AI-driven behaviors:
+
+- **Wander** — pets explore the office randomly
+- **Approach idle agents** — pets walk toward agents that are idle at their desks
+- **Sleep** — pets occasionally take naps at random spots
+- **Flee active agents** — pets run away from agents that are actively working
+
+Up to 5 pets can be added at once. Configure pet names, colors (hue shift), and manage your pets from the Settings modal. Pets are enabled by default.
+
 ## Requirements
 
 - VS Code 1.109.0 or later
@@ -75,7 +109,7 @@ Sub-agents inherit their parent's character palette and are placed at the closes
 2. Download the latest `.vsix` file
 3. Install via terminal:
    ```bash
-   code --install-extension pixel-agent-1.1.0.vsix
+   code --install-extension pixel-agent-1.2.3.vsix
    ```
    Or in VS Code: **Cmd+Shift+P → Install from VSIX** and select the downloaded file.
 4. Reload VS Code (**Cmd+Shift+P → Reload Window**)
@@ -97,7 +131,7 @@ Then press **F5** in VS Code to launch the Extension Development Host.
 To build, package, and install as a `.vsix` extension in one step, add this alias to your `~/.zshrc`:
 
 ```bash
-alias pxbuild="cd ~/pixel-agents && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agents-1.0.0.vsix --force"
+alias pxbuild="cd ~/pixel-agents && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agent-1.2.3.vsix --force"
 ```
 
 Then run `pxbuild` from any terminal. After installation, reload VS Code (**Cmd+Shift+P → Reload Window**).
@@ -166,6 +200,10 @@ Implemented in this fork:
 - ~~**Zoom persistence & pixel-perfect steps**~~ — zoom level saved across sessions, 1px increments, px display
 - ~~**Better status detection**~~ — smarter agent state transitions with adaptive permission timers, early completion signals, and a new "Thinking..." indicator (see below)
 - ~~**Pixel text & z-layer**~~ — custom pixel art text on walls with font/scale/color options; z-layer toggle to control draw order relative to walls and characters
+- ~~**Token usage panel**~~ — real-time per-agent token tracking with color-coded breakdown
+- ~~**Mood reactions**~~ — happy, error, and stressed emoji bubbles based on agent activity
+- ~~**Achievement system**~~ — 8 unlockable achievements with progress tracking and gallery
+- ~~**Office pets**~~ — cats and dogs with AI behaviors, configurable via Settings
 
 ### Better Status Detection
 
@@ -221,6 +259,10 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - Panel geçişlerinde durum koruma
 - Ajan turu tamamlandığında ses bildirimleri
 - Piksel yazı — yerleşik font oluşturucu ve z-katman kontrolü ile duvarlara özel yazı yerleştirme
+- Ajan bazlı dağılım ve renkli ilerleme çubuklarıyla gerçek zamanlı token kullanım paneli
+- Ruh hali reaksiyonları — ajan aktivitesine göre mutlu, hata ve stresli emoji balonları
+- Başarım sistemi — ilerleme takibi ve galeri ile 8 açılabilir başarım
+- Ofis evcil hayvanları — AI davranışlarıyla kediler ve köpekler, Ayarlar'dan yapılandırılabilir
 
 ![Pixel Agents ekran görüntüsü](webview-ui/public/Screenshot.png)
 
@@ -238,6 +280,10 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - **Panel durumu koruma** — başka bir panele (ör. Debug) geçip geri dönmek tüm durumu korur — artık düzen sıfırlanması yok
 - **Piksel-mükemmel yakınlaştırma** — 1px artışlarla yakınlaştırma, seviye piksel olarak görüntülenir (ör. 16px)
 - **Piksel yazı** — duvarlara ayarlanabilir font boyutu, ölçek ve renk ile özel piksel sanat yazısı yerleştirin; z-katman butonu ile yazıyı duvarların önünde ama karakterlerin arkasında gösterin
+- **Token kullanım paneli** — ajan bazlı dağılım, renkli ilerleme çubukları (Girdi/Çıktı/Cache Yazma/Cache Okuma) ve biçimlendirilmiş toplamlarla gerçek zamanlı token takibi
+- **Ruh hali reaksiyonları** — ajanlar emoji balonları gösterir (tur tamamlandığında mutlu, hatalarda hata, uzun turlarda stresli)
+- **Başarımlar** — toast bildirimleri ve Ayarlar'daki galeri görünümü ile 8 açılabilir başarım
+- **Ofis evcil hayvanları** — kediler ve köpekler AI güdümlü davranışlarla ofiste dolaşır (dolaşma, boş ajanlara yaklaşma, uyuma, aktif ajanlardan kaçma); Ayarlar'dan 5'e kadar evcil hayvan yapılandırılabilir
 - **Çeşitli karakterler** — renk kaydırmalı varyantlarla 6 farklı karakter
 
 <p align="center">
@@ -269,6 +315,32 @@ Görev paneli (sağ alt araç çubuğundaki düğme ile açılır) tüm aktif aj
 
 Alt-ajanlar, ana ajanın karakter paletini miras alır ve en yakın boş koltuğa yerleştirilir.
 
+## Başarımlar
+
+Pixel Agents, kullanımınızı takip eden 8 açılabilir başarım içerir:
+
+- **İlk Ajan** — ilk ajanınızı oluşturun
+- **Takım Oyuncusu** — aynı anda 3+ ajan çalıştırın
+- **Token Milyoneri** — tüm ajanlarda 1 milyon token kullanın
+- **Gece Kuşu** — gece yarısından sonra ajan kullanın
+- **Böcek Avcısı** — 10 ajan turu tamamlayın
+- **Mimar** — ofis düzeninizi özelleştirin
+- **Maraton** — 1 saat ajan çalışma süresi biriktirin
+- **Dekoratör** — 20+ mobilya yerleştirin
+
+Başarımlar açıldığında toast bildirimi olarak görünür. Tüm başarımları ve ilerlemeyi Ayarlar penceresinden erişilebilen galeride görüntüleyin.
+
+## Ofis Evcil Hayvanları
+
+Ofisinize kediler ve köpekler ekleyin — AI güdümlü davranışlarla dolaşırlar:
+
+- **Dolaşma** — evcil hayvanlar ofisi rastgele keşfeder
+- **Boş ajanlara yaklaşma** — evcil hayvanlar masalarında boş oturan ajanlara doğru yürür
+- **Uyuma** — evcil hayvanlar zaman zaman rastgele noktalarda şekerleme yapar
+- **Aktif ajanlardan kaçma** — evcil hayvanlar aktif olarak çalışan ajanlardan kaçar
+
+Aynı anda 5'e kadar evcil hayvan eklenebilir. Evcil hayvan isimlerini, renklerini (renk kaydırma) yapılandırın ve evcil hayvanlarınızı Ayarlar penceresinden yönetin. Evcil hayvanlar varsayılan olarak etkindir.
+
 ## Gereksinimler
 
 - VS Code 1.109.0 veya üstü
@@ -282,7 +354,7 @@ Alt-ajanlar, ana ajanın karakter paletini miras alır ve en yakın boş koltuğ
 2. En son `.vsix` dosyasını indirin
 3. Terminal ile kurun:
    ```bash
-   code --install-extension pixel-agent-1.1.0.vsix
+   code --install-extension pixel-agent-1.2.3.vsix
    ```
    Veya VS Code'da: **Cmd+Shift+P → Install from VSIX** ile indirilen dosyayı seçin.
 4. VS Code'u yeniden yükleyin (**Cmd+Shift+P → Reload Window**)
@@ -304,7 +376,7 @@ Ardından VS Code'da **F5**'e basarak Extension Development Host'u başlatın.
 `.vsix` eklentisini tek adımda derleyip kurmak için `~/.zshrc` dosyanıza şu alias'ı ekleyin:
 
 ```bash
-alias pxbuild="cd ~/pixel-agents && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agents-1.0.0.vsix --force"
+alias pxbuild="cd ~/pixel-agents && npm run build && npx vsce package --no-dependencies && code --install-extension pixel-agent-1.2.3.vsix --force"
 ```
 
 Ardından herhangi bir terminalden `pxbuild` çalıştırın. Kurulumdan sonra VS Code'u yeniden yükleyin (**Cmd+Shift+P → Reload Window**).
@@ -373,6 +445,10 @@ Bu fork'ta uygulanmış:
 - ~~**Yakınlaştırma kalıcılığı ve piksel-mükemmel adımlar**~~ — yakınlaştırma seviyesi oturumlar arasında kaydedilir, 1px artışlar, px gösterimi
 - ~~**Daha iyi durum algılama**~~ — uyarlanabilir izin zamanlayıcıları, erken tamamlanma sinyalleri ve yeni "Düşünüyor..." göstergesi ile daha akıllı ajan durum geçişleri (aşağıya bakın)
 - ~~**Piksel yazı ve z-katman**~~ — duvarlara font/ölçek/renk seçenekleriyle özel piksel sanat yazısı; duvarlar ve karakterlere göre çizim sırasını kontrol eden z-katman değiştirici
+- ~~**Token kullanım paneli**~~ — renkli dağılımla gerçek zamanlı ajan bazlı token takibi
+- ~~**Ruh hali reaksiyonları**~~ — ajan aktivitesine göre mutlu, hata ve stresli emoji balonları
+- ~~**Başarım sistemi**~~ — ilerleme takibi ve galeri ile 8 açılabilir başarım
+- ~~**Ofis evcil hayvanları**~~ — AI davranışlarıyla kediler ve köpekler, Ayarlar'dan yapılandırılabilir
 
 ### Daha İyi Durum Algılama
 
