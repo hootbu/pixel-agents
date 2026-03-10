@@ -18,6 +18,7 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - Mood reactions — happy, error, and stressed emoji bubbles based on agent activity
 - Achievement system — 8 unlockable achievements with progress tracking and gallery
 - Office pets — cats and dogs with AI behaviors, configurable via Settings
+- Costume mode — change agent appearance at runtime with 6 character models and hue shift slider
 
 ![Pixel Agents screenshot](webview-ui/public/Screenshot.png)
 
@@ -39,6 +40,7 @@ Based on the original [Pixel Agents extension](https://marketplace.visualstudio.
 - **Mood reactions** — agents show emoji bubbles (happy on turn complete, error on failures, stressed on long turns)
 - **Achievements** — 8 unlockable achievements with toast notifications and gallery view in Settings
 - **Office pets** — cats and dogs roam the office with AI-driven behaviors (wander, approach idle agents, sleep, flee active agents); up to 5 pets configurable in Settings
+- **Costume mode** — change any agent's appearance at runtime; pick from 6 character models and fine-tune with a hue shift slider, persisted across sessions
 - **Diverse characters** — 6 diverse characters with hue-shifted variants
 
 <p align="center">
@@ -204,6 +206,7 @@ Implemented in this fork:
 - ~~**Mood reactions**~~ — happy, error, and stressed emoji bubbles based on agent activity
 - ~~**Achievement system**~~ — 8 unlockable achievements with progress tracking and gallery
 - ~~**Office pets**~~ — cats and dogs with AI behaviors, configurable via Settings
+- ~~**Costume mode**~~ — change agent appearance at runtime with 6 character models and hue shift
 
 ### Better Status Detection
 
@@ -263,6 +266,7 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - Ruh hali reaksiyonları — ajan aktivitesine göre mutlu, hata ve stresli emoji balonları
 - Başarım sistemi — ilerleme takibi ve galeri ile 8 açılabilir başarım
 - Ofis evcil hayvanları — AI davranışlarıyla kediler ve köpekler, Ayarlar'dan yapılandırılabilir
+- Kostüm modu — 6 karakter modeli ve renk kaydırma ile ajanların görünüşünü çalışma zamanında değiştirme
 
 ![Pixel Agents ekran görüntüsü](webview-ui/public/Screenshot.png)
 
@@ -284,6 +288,7 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - **Ruh hali reaksiyonları** — ajanlar emoji balonları gösterir (tur tamamlandığında mutlu, hatalarda hata, uzun turlarda stresli)
 - **Başarımlar** — toast bildirimleri ve Ayarlar'daki galeri görünümü ile 8 açılabilir başarım
 - **Ofis evcil hayvanları** — kediler ve köpekler AI güdümlü davranışlarla ofiste dolaşır (dolaşma, boş ajanlara yaklaşma, uyuma, aktif ajanlardan kaçma); Ayarlar'dan 5'e kadar evcil hayvan yapılandırılabilir
+- **Kostüm modu** — herhangi bir ajanın görünüşünü çalışma zamanında değiştirin; 6 karakter modelinden seçin ve renk kaydırma ile ince ayar yapın, oturumlar arası kalıcı
 - **Çeşitli karakterler** — renk kaydırmalı varyantlarla 6 farklı karakter
 
 <p align="center">
@@ -449,6 +454,7 @@ Bu fork'ta uygulanmış:
 - ~~**Ruh hali reaksiyonları**~~ — ajan aktivitesine göre mutlu, hata ve stresli emoji balonları
 - ~~**Başarım sistemi**~~ — ilerleme takibi ve galeri ile 8 açılabilir başarım
 - ~~**Ofis evcil hayvanları**~~ — AI davranışlarıyla kediler ve köpekler, Ayarlar'dan yapılandırılabilir
+- ~~**Kostüm modu**~~ — 6 karakter modeli ve renk kaydırma ile ajanların görünüşünü çalışma zamanında değiştirme
 
 ### Daha İyi Durum Algılama
 

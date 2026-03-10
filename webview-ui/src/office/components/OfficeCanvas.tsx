@@ -16,6 +16,8 @@ interface OfficeCanvasProps {
   onClick: (agentId: number) => void
   isEditMode: boolean
   isSeatMode: boolean
+  isCostumeMode: boolean
+  onCostumeTargetSelect: (agentId: number) => void
   editorState: EditorState
   onEditorTileAction: (col: number, row: number) => void
   onEditorEraseAction: (col: number, row: number) => void
@@ -31,7 +33,7 @@ interface OfficeCanvasProps {
   panRef: React.MutableRefObject<{ x: number; y: number }>
 }
 
-export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, onEditText, onLayerToggle, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
+export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isCostumeMode, onCostumeTargetSelect, editorState, onEditorTileAction, onEditorEraseAction, onEditorSelectionChange, onDeleteSelected, onRotateSelected, onDragMove, onEditText, onLayerToggle, editorTick: _editorTick, zoom, onZoomChange, panRef }: OfficeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
@@ -631,6 +633,25 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
 
       const hitId = officeState.getCharacterAt(pos.worldX, pos.worldY)
 
+      // --- Costume mode ---
+      if (isCostumeMode) {
+        if (hitId !== null) {
+          // Block sub-agents
+          const ch = officeState.characters.get(hitId)
+          if (ch && !ch.isSubagent) {
+            officeState.selectedAgentId = hitId
+            officeState.cameraFollowId = hitId
+            onCostumeTargetSelect(hitId)
+          }
+        } else {
+          // Clicked empty space — deselect
+          officeState.selectedAgentId = null
+          officeState.cameraFollowId = null
+          onCostumeTargetSelect(-999) // signal close
+        }
+        return
+      }
+
       // --- Seat assignment mode ---
       if (isSeatMode) {
         if (hitId !== null) {
@@ -711,7 +732,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, edi
         officeState.cameraFollowId = null
       }
     },
-    [officeState, onClick, screenToWorld, screenToTile, isEditMode, isSeatMode],
+    [officeState, onClick, screenToWorld, screenToTile, isEditMode, isSeatMode, isCostumeMode, onCostumeTargetSelect],
   )
 
   const handleMouseLeave = useCallback(() => {

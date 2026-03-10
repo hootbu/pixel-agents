@@ -130,6 +130,33 @@ export class OfficeState {
         this.relocateCharacterToWalkable(ch)
       }
     }
+
+    // Shift pet positions when grid expands left/up
+    if (shift && (shift.col !== 0 || shift.row !== 0)) {
+      for (const pet of this.pets) {
+        pet.tileCol += shift.col
+        pet.tileRow += shift.row
+        pet.x += shift.col * TILE_SIZE
+        pet.y += shift.row * TILE_SIZE
+        pet.path = []
+        pet.moveProgress = 0
+      }
+    }
+
+    // Relocate pets on non-walkable tiles
+    for (const pet of this.pets) {
+      if (!isWalkable(pet.tileCol, pet.tileRow, this.tileMap, this.blockedTiles)) {
+        if (this.walkableTiles.length > 0) {
+          const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
+          pet.tileCol = spawn.col
+          pet.tileRow = spawn.row
+          pet.x = spawn.col * TILE_SIZE + TILE_SIZE / 2
+          pet.y = spawn.row * TILE_SIZE + TILE_SIZE / 2
+          pet.path = []
+          pet.moveProgress = 0
+        }
+      }
+    }
   }
 
   /** Move a character to a random walkable tile */

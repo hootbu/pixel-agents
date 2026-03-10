@@ -20,6 +20,7 @@ import { UsagePanel } from './components/UsagePanel.js'
 import { PixelTextEditor } from './office/editor/PixelTextEditor.js'
 import { AchievementPopup } from './components/AchievementPopup.js'
 import { AchievementGallery } from './components/AchievementGallery.js'
+import { CostumePanel } from './components/CostumePanel.js'
 
 // Game state lives outside React — updated imperatively by message handlers
 const officeStateRef = { current: null as OfficeState | null }
@@ -131,6 +132,8 @@ function App() {
 
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isSeatMode, setIsSeatMode] = useState(false)
+  const [isCostumeMode, setIsCostumeMode] = useState(false)
+  const [costumeTargetAgentId, setCostumeTargetAgentId] = useState<number | null>(null)
   const [isTaskPanelOpen, setIsTaskPanelOpen] = useState(false)
   const [isUsagePanelOpen, setIsUsagePanelOpen] = useState(false)
 
@@ -165,6 +168,8 @@ function App() {
     vscode.postMessage({ type: 'savePetData', petData: data })
   }, [setPetData])
   const handleToggleSeatMode = useCallback(() => {
+    setIsCostumeMode(false)
+    setCostumeTargetAgentId(null)
     setIsSeatMode((prev) => {
       const next = !prev
       if (!next) {
@@ -176,6 +181,58 @@ function App() {
       return next
     })
   }, [])
+
+  const handleToggleCostumeMode = useCallback(() => {
+    setIsSeatMode(false)
+    if (editor.isEditMode) editor.handleToggleEditMode()
+    setIsCostumeMode((prev) => {
+      const next = !prev
+      if (!next) {
+        setCostumeTargetAgentId(null)
+        const os = getOfficeState()
+        os.selectedAgentId = null
+        os.cameraFollowId = null
+      }
+      return next
+    })
+  }, [editor])
+
+  const handleCostumeTargetSelect = useCallback((agentId: number) => {
+    if (agentId === -999) {
+      // Empty space click — close panel
+      setCostumeTargetAgentId(null)
+      return
+    }
+    setCostumeTargetAgentId(agentId)
+  }, [])
+
+  const handleCostumeSelect = useCallback((palette: number, hueShift: number) => {
+    if (costumeTargetAgentId === null) return
+    const os = getOfficeState()
+    const ch = os.characters.get(costumeTargetAgentId)
+    if (!ch) return
+    ch.palette = palette
+    ch.hueShift = hueShift
+    // Persist via existing messages
+    const seats: Record<number, { palette: number; seatId: string | null }> = {}
+    for (const c of os.characters.values()) {
+      if (c.isSubagent) continue
+      seats[c.id] = { palette: c.palette, seatId: c.seatId }
+    }
+    vscode.postMessage({ type: 'saveAgentSeats', seats })
+    const names: Record<string, { seatId: string; palette: number; hueShift: number }> = {}
+    for (const c of os.characters.values()) {
+      if (c.isSubagent || !c.name) continue
+      names[c.name] = { seatId: c.seatId || '', palette: c.palette, hueShift: c.hueShift }
+    }
+    vscode.postMessage({ type: 'saveAgentNames', names })
+  }, [costumeTargetAgentId])
+
+  const handleToggleEditModeWithCostume = useCallback(() => {
+    setIsCostumeMode(false)
+    setCostumeTargetAgentId(null)
+    editor.handleToggleEditMode()
+  }, [editor])
 
   const handleSelectAgent = useCallback((id: number) => {
     vscode.postMessage({ type: 'focusAgent', id })
@@ -193,7 +250,7 @@ function App() {
     editor.handleUndo,
     editor.handleRedo,
     useCallback(() => setEditorTickForKeyboard((n) => n + 1), []),
-    editor.handleToggleEditMode,
+    handleToggleEditModeWithCostume,
   )
 
   const handleCloseAgent = useCallback((id: number) => {
@@ -261,6 +318,8 @@ function App() {
         onClick={handleClick}
         isEditMode={editor.isEditMode}
         isSeatMode={isSeatMode}
+        isCostumeMode={isCostumeMode}
+        onCostumeTargetSelect={handleCostumeTargetSelect}
         editorState={editorState}
         onEditorTileAction={editor.handleEditorTileAction}
         onEditorEraseAction={editor.handleEditorEraseAction}
@@ -292,9 +351,11 @@ function App() {
       <BottomToolbar
         isEditMode={editor.isEditMode}
         isSeatMode={isSeatMode}
+        isCostumeMode={isCostumeMode}
         onOpenClaude={editor.handleOpenClaude}
-        onToggleEditMode={editor.handleToggleEditMode}
+        onToggleEditMode={handleToggleEditModeWithCostume}
         onToggleSeatMode={handleToggleSeatMode}
+        onToggleCostumeMode={handleToggleCostumeMode}
         isDebugMode={isDebugMode}
         onToggleDebugMode={handleToggleDebugMode}
         onOpenAchievements={handleOpenAchievements}
@@ -330,6 +391,43 @@ function App() {
           {officeState.selectedAgentId !== null ? 'Now click on a desk to assign' : 'Click on an agent to select'}
         </div>
       )}
+
+      {isCostumeMode && costumeTargetAgentId === null && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 49,
+            background: 'var(--pixel-hint-bg)',
+            color: '#fff',
+            fontSize: '20px',
+            padding: '3px 8px',
+            borderRadius: 0,
+            border: '2px solid var(--pixel-accent)',
+            boxShadow: 'var(--pixel-shadow)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Click on an agent to change costume
+        </div>
+      )}
+
+      {isCostumeMode && costumeTargetAgentId !== null && (() => {
+        const ch = officeState.characters.get(costumeTargetAgentId)
+        if (!ch) return null
+        return (
+          <CostumePanel
+            agentId={costumeTargetAgentId}
+            currentPalette={ch.palette}
+            currentHueShift={ch.hueShift}
+            onSelect={handleCostumeSelect}
+            onClose={() => setCostumeTargetAgentId(null)}
+          />
+        )
+      })()}
 
       {showRotateHint && (
         <div

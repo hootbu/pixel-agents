@@ -5,9 +5,11 @@ import type { PetConfig } from '../office/types.js'
 interface BottomToolbarProps {
   isEditMode: boolean
   isSeatMode: boolean
+  isCostumeMode: boolean
   onOpenClaude: () => void
   onToggleEditMode: () => void
   onToggleSeatMode: () => void
+  onToggleCostumeMode: () => void
   isDebugMode: boolean
   onToggleDebugMode: () => void
   onOpenAchievements: () => void
@@ -52,9 +54,11 @@ const btnActive: React.CSSProperties = {
 export function BottomToolbar({
   isEditMode,
   isSeatMode,
+  isCostumeMode,
   onOpenClaude,
   onToggleEditMode,
   onToggleSeatMode,
+  onToggleCostumeMode,
   isDebugMode,
   onToggleDebugMode,
   onOpenAchievements,
@@ -116,6 +120,22 @@ export function BottomToolbar({
         title="Assign agents to desks"
       >
         Seats
+      </button>
+      <button
+        onClick={onToggleCostumeMode}
+        onMouseEnter={() => setHovered('costume')}
+        onMouseLeave={() => setHovered(null)}
+        style={
+          isCostumeMode
+            ? { ...btnActive }
+            : {
+                ...btnBase,
+                background: hovered === 'costume' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+              }
+        }
+        title="Change agent costume"
+      >
+        Costume
       </button>
       <div style={{ position: 'relative' }}>
         <button
