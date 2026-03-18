@@ -400,8 +400,8 @@ export function useExtensionMessages(
         console.log(`[Webview] Received ${sprites.length} floor tile patterns`)
         setFloorSprites(sprites)
       } else if (msg.type === 'wallTilesLoaded') {
-        const sprites = msg.sprites as string[][][]
-        console.log(`[Webview] Received ${sprites.length} wall tile sprites`)
+        const sprites = (msg.sets as string[][][][])?.[0] ?? (msg.sprites as string[][][])
+        console.log(`[Webview] Received ${sprites?.length} wall tile sprites`)
         setWallSprites(sprites)
       } else if (msg.type === 'achievementUnlocked') {
         const achievement = msg.achievement as AchievementNotification
