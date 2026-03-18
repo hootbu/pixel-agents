@@ -38,8 +38,20 @@ export async function launchNewTerminal(
 	});
 	if (!name) {return;} // user cancelled
 
+	// Ask user for the folder to open the agent in
+	const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+	const folderUris = await vscode.window.showOpenDialog({
+		canSelectFolders: true,
+		canSelectFiles: false,
+		canSelectMany: false,
+		openLabel: 'Open Agent Here',
+		defaultUri,
+		title: 'Select folder for agent',
+	});
+	if (!folderUris || folderUris.length === 0) {return;} // user cancelled
+
 	const idx = nextTerminalIndexRef.current++;
-	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const cwd = folderUris[0].fsPath;
 	const terminal = vscode.window.createTerminal({
 		name,
 		cwd,
