@@ -4,7 +4,7 @@ import type { EditorState } from '../editor/editorState.js'
 import type { EditorRenderState, SelectionRenderState, DeleteButtonBounds, RotateButtonBounds, EditButtonBounds, LayerButtonBounds } from '../engine/renderer.js'
 import { startGameLoop } from '../engine/gameLoop.js'
 import { renderFrame } from '../engine/renderer.js'
-import { TILE_SIZE, EditTool, FurnitureType } from '../types.js'
+import { TILE_SIZE, EditTool, FurnitureType, TileType } from '../types.js'
 import { CAMERA_FOLLOW_LERP, CAMERA_FOLLOW_SNAP_THRESHOLD, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_SCROLL_THRESHOLD, PAN_MARGIN_FRACTION } from '../../constants.js'
 import { getCatalogEntry, getEffectiveCatalogEntry, isRotatable } from '../layout/furnitureCatalog.js'
 import { canPlaceFurniture, getWallPlacementRow } from '../editor/editorActions.js'
@@ -160,7 +160,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
               const layout = officeState.getLayout()
               const hoverIdx = editorState.ghostRow * layout.cols + editorState.ghostCol
               const tileVal = hoverIdx >= 0 && hoverIdx < layout.tiles.length ? layout.tiles[hoverIdx] : undefined
-              editorRender.ghostValid = tileVal !== undefined && tileVal !== 8 /* TileType.VOID */
+              editorRender.ghostValid = tileVal !== undefined && tileVal !== TileType.VOID
             } else {
               const entry = getCatalogEntry(editorState.selectedFurnitureType)
               if (entry) {
