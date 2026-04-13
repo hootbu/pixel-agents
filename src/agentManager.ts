@@ -11,7 +11,7 @@ import { migrateAndLoadLayout } from './layoutPersistence.js';
 export function getProjectDirPath(cwd?: string): string | null {
 	const workspacePath = cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	if (!workspacePath) {return null;}
-	const dirName = workspacePath.replace(/[:\\/]/g, '-');
+	const dirName = workspacePath.replace(/[^a-zA-Z0-9]/g, '-');
 	return path.join(os.homedir(), '.claude', 'projects', dirName);
 }
 
@@ -194,12 +194,28 @@ export function restoreAgents(
 		const terminal = liveTerminals.find(t => t.name === p.terminalName);
 		if (!terminal) {continue;}
 
+		// Migrate: re-derive paths with current (fixed) sanitizer in case old paths used wrong convention
+		let resolvedProjectDir = p.projectDir;
+		let resolvedJsonlFile = p.jsonlFile;
+		if (!fs.existsSync(p.jsonlFile)) {
+			const correctedDir = getProjectDirPath();
+			if (correctedDir) {
+				const sessionId = path.basename(p.jsonlFile, '.jsonl');
+				const correctedFile = path.join(correctedDir, `${sessionId}.jsonl`);
+				if (fs.existsSync(correctedFile)) {
+					console.log(`[Pixel Agents] Migrating agent ${p.id} path: ${p.jsonlFile} → ${correctedFile}`);
+					resolvedProjectDir = correctedDir;
+					resolvedJsonlFile = correctedFile;
+				}
+			}
+		}
+
 		const agent: AgentState = {
 			id: p.id,
 			name: p.name || `Agent ${p.id}`,
 			terminalRef: terminal,
-			projectDir: p.projectDir,
-			jsonlFile: p.jsonlFile,
+			projectDir: resolvedProjectDir,
+			jsonlFile: resolvedJsonlFile,
 			fileOffset: 0,
 			lineBuffer: '',
 			activeToolIds: new Set(),
@@ -218,7 +234,7 @@ export function restoreAgents(
 		};
 
 		agents.set(p.id, agent);
-		knownJsonlFiles.add(p.jsonlFile);
+		knownJsonlFiles.add(resolvedJsonlFile);
 		console.log(`[Pixel Agents] Restored agent ${p.id} → terminal "${p.terminalName}"`);
 
 		if (p.id > maxId) {maxId = p.id;}
@@ -229,14 +245,15 @@ export function restoreAgents(
 			if (idx > maxIdx) {maxIdx = idx;}
 		}
 
-		restoredProjectDir = p.projectDir;
+		restoredProjectDir = resolvedProjectDir;
 
 		// Start file watching if JSONL exists, skipping to end of file
 		try {
-			if (fs.existsSync(p.jsonlFile)) {
-				const stat = fs.statSync(p.jsonlFile);
+			if (fs.existsSync(resolvedJsonlFile)) {
+				const stat = fs.statSync(resolvedJsonlFile);
+				replayUsageFromJsonl(p.id, agent, resolvedJsonlFile);
 				agent.fileOffset = stat.size;
-				startFileWatching(p.id, p.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
+				startFileWatching(p.id, resolvedJsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
 			} else {
 				// Poll for the file to appear
 				const pollTimer = setInterval(() => {
@@ -246,6 +263,7 @@ export function restoreAgents(
 							clearInterval(pollTimer);
 							jsonlPollTimers.delete(p.id);
 							const stat = fs.statSync(agent.jsonlFile);
+							replayUsageFromJsonl(p.id, agent, agent.jsonlFile);
 							agent.fileOffset = stat.size;
 							startFileWatching(p.id, agent.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
 						}
@@ -338,7 +356,7 @@ export function sendCurrentAgentStatuses(
 		}
 		// Re-send accumulated usage data
 		const u = agent.usage;
-		if (u.inputTokens > 0 || u.outputTokens > 0) {
+		if (u.inputTokens > 0 || u.outputTokens > 0 || u.cacheCreationTokens > 0 || u.cacheReadTokens > 0) {
 			webview.postMessage({
 				type: 'agentUsageUpdate',
 				id: agentId,
@@ -353,6 +371,36 @@ export function sendCurrentAgentStatuses(
 			});
 		}
 	}
+}
+
+function replayUsageFromJsonl(agentId: number, agent: AgentState, jsonlFile: string): void {
+	try {
+		const content = fs.readFileSync(jsonlFile, 'utf-8');
+		const lines = content.split('\n');
+		for (const line of lines) {
+			if (!line.trim()) {continue;}
+			try {
+				const record = JSON.parse(line);
+				if (record.type === 'assistant' && Array.isArray(record.message?.content)) {
+					const usage = record.message.usage as {
+						input_tokens?: number;
+						output_tokens?: number;
+						cache_creation_input_tokens?: number;
+						cache_read_input_tokens?: number;
+					} | undefined;
+					if (usage) {
+						agent.usage.inputTokens += usage.input_tokens || 0;
+						agent.usage.outputTokens += usage.output_tokens || 0;
+						agent.usage.cacheCreationTokens += usage.cache_creation_input_tokens || 0;
+						agent.usage.cacheReadTokens += usage.cache_read_input_tokens || 0;
+					}
+					const model = record.message.model as string | undefined;
+					if (model) {agent.usage.model = model;}
+				}
+			} catch { /* skip malformed lines */ }
+		}
+		console.log(`[Pixel Agents] Agent ${agentId}: replayed usage from JSONL — in=${agent.usage.inputTokens} out=${agent.usage.outputTokens}`);
+	} catch { /* file unreadable, skip */ }
 }
 
 export function sendLayout(
