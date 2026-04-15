@@ -38,6 +38,20 @@ export async function launchNewTerminal(
 	});
 	if (!name) {return;} // user cancelled
 
+	// Ask whether to skip permissions
+	const permissionChoice = await vscode.window.showQuickPick(
+		[
+			{ label: 'Normal', description: 'Ask for permissions (default)', skip: false },
+			{ label: 'Skip Permissions', description: '--dangerously-skip-permissions', skip: true },
+		],
+		{
+			placeHolder: 'Permission mode for this agent',
+			ignoreFocusOut: true,
+		},
+	);
+	if (!permissionChoice) {return;} // user cancelled
+	const skipPermissions = permissionChoice.skip;
+
 	const idx = nextTerminalIndexRef.current++;
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	const terminal = vscode.window.createTerminal({
@@ -47,7 +61,8 @@ export async function launchNewTerminal(
 	terminal.show();
 
 	const sessionId = crypto.randomUUID();
-	terminal.sendText(`claude --session-id ${sessionId}`);
+	const flags = skipPermissions ? ' --dangerously-skip-permissions' : '';
+	terminal.sendText(`claude --session-id ${sessionId}${flags}`);
 
 	const projectDir = getProjectDirPath(cwd);
 	if (!projectDir) {

@@ -231,6 +231,7 @@ Implemented in this fork:
 - ~~**Achievement system**~~ — 8 unlockable achievements with progress tracking and gallery
 - ~~**Office pets**~~ — cats and dogs with AI behaviors, configurable via Settings
 - ~~**Costume mode**~~ — change agent appearance at runtime with 6 character models and hue shift
+- ~~**Per-agent permission mode**~~ — after clicking + Agent, pick Normal or Skip Permissions (`--dangerously-skip-permissions`) per agent
 
 ### Better Status Detection
 
@@ -291,6 +292,7 @@ pablodelucca tarafından geliştirilen orijinal [Pixel Agents eklentisine](https
 - Başarım sistemi — ilerleme takibi ve galeri ile 8 açılabilir başarım
 - Ofis evcil hayvanları — AI davranışlarıyla kediler ve köpekler, Ayarlar'dan yapılandırılabilir
 - Kostüm modu — 6 karakter modeli ve renk kaydırma ile ajanların görünüşünü çalışma zamanında değiştirme
+- Ajan bazlı izin modu — + Agent'a bastıktan sonra Normal veya Skip Permissions (`--dangerously-skip-permissions`) seçimi
 
 ![Pixel Agents ekran görüntüsü](webview-ui/public/Screenshot.png)
 
