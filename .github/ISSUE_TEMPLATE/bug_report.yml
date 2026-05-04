@@ -1,0 +1,74 @@
+name: "🐛 Bug report"
+description: "Report something broken in Pixel Agents"
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! The more detail you can provide, the faster we can reproduce and fix it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the actual behavior.
+      placeholder: When I clicked "+ Agent", the character appeared but the terminal never opened…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A numbered list of steps so we can reproduce on our end.
+      placeholder: |
+        1. Open VS Code in workspace X
+        2. Open the Pixel Agents panel
+        3. Click "+ Agent"
+        4. …
+    validations:
+      required: true
+  - type: input
+    id: vscode-version
+    attributes:
+      label: VS Code version
+      placeholder: 1.95.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: pixel-agents-version
+    attributes:
+      label: Pixel Agents version
+      value: 1.2.5
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / GIFs
+      description: Drag & drop any visuals that help explain the issue.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste any relevant output from the VS Code Output panel or terminal.
+      render: shell
+    validations:
+      required: false

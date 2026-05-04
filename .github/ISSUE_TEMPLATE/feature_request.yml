@@ -1,0 +1,37 @@
+name: "✨ Feature request"
+description: "Suggest an idea or improvement"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea! Help us understand the problem and the shape of the solution you're imagining.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What pain does this solve? What are you trying to accomplish?
+      placeholder: It's hard to tell which agent is currently waiting for input when there are more than five characters on screen…
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature or behavior you'd like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you've thought about, and why you ruled them out.
+    validations:
+      required: false
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups / sketches
+      description: Drag & drop any drawings, screenshots, or links that illustrate the idea.
+    validations:
+      required: false
