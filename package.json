@@ -1,6 +1,6 @@
 {
   "name": "pixel-agent",
-  "displayName": "Pixel Agents - Hootbu",
+  "displayName": "Pixel Agents",
   "description": "Pixel art office where your Claude Code agents come to life as animated characters",
   "version": "1.2.5",
   "publisher": "hootbu",
@@ -8,14 +8,36 @@
     "type": "git",
     "url": "https://github.com/hootbu/pixel-agents"
   },
+  "homepage": "https://github.com/hootbu/pixel-agents#readme",
+  "bugs": {
+    "url": "https://github.com/hootbu/pixel-agents/issues"
+  },
   "icon": "icon.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.109.0"
   },
   "categories": [
+    "AI",
+    "Visualization",
     "Other"
   ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "agent",
+    "agents",
+    "pixel-art",
+    "visualization",
+    "office",
+    "animation",
+    "developer-tools"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {

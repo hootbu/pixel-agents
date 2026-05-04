@@ -14,7 +14,7 @@ This project is licensed under the [MIT License](LICENSE), so your contributions
 ### Setup
 
 ```bash
-git clone https://github.com/pablodelucca/pixel-agents.git
+git clone https://github.com/hootbu/pixel-agents.git
 cd pixel-agents
 npm install
 cd webview-ui && npm install && cd ..
@@ -78,7 +78,7 @@ The project uses a pixel art aesthetic. All overlays should use:
 
 ## Reporting Bugs
 
-[Open an issue](https://github.com/pablodelucca/pixel-agents/issues) with:
+[Open an issue](https://github.com/hootbu/pixel-agents/issues) with:
 
 - What you expected to happen
 - What actually happened
@@ -87,7 +87,7 @@ The project uses a pixel art aesthetic. All overlays should use:
 
 ## Feature Requests
 
-Have an idea? [Open an issue](https://github.com/pablodelucca/pixel-agents/issues) to discuss it before building. This helps avoid duplicate work and ensures the feature fits the project's direction.
+Have an idea? [Open an issue](https://github.com/hootbu/pixel-agents/issues) to discuss it before building. This helps avoid duplicate work and ensures the feature fits the project's direction.
 
 ## Code of Conduct
 
