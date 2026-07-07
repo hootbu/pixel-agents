@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-07-07
+
+### Added
+- Pet camera follow — click a cat or dog to lock the camera onto it as it roams the office (just like following an agent); click the same pet again to stop.
+- Spawned sub-agents now appear in the office — when a tracked agent spawns another agent (via the `Task`/`Agent` tool), it shows up as its own character. Works for both one-shot background agents and persistent standby teammates.
+- Sub-agent name labels — spawned teammates are labelled with their real name (e.g. `Mimar`, `Kalite`) read from the launch acknowledgement.
+
+### Changed
+- Each spawned sub-agent now gets a distinct character skin (least-used palette) so concurrent sub-agents are never identical twins.
+- Externally started Claude sessions (running before the panel opened) are now adopted retroactively, so their spawned sub-agents become visible.
+
 ## [1.2.5] - 2026-04-15
 
 ### Added
