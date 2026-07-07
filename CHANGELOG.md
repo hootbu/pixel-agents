@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-07-07
+
+### Added
+- Live sub-agent activity — spawned teammates now show what they are doing (e.g. `Reading layout.tsx`, `Running: ls`, `Thinking...`) on their row in the Tasks panel, and their office characters animate (reading/writing) accordingly. Activity is streamed from each teammate's own transcript file.
+
 ## [1.2.6] - 2026-07-07
 
 ### Added
