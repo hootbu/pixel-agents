@@ -94,6 +94,7 @@ export async function launchNewTerminal(
 		activeSubagentToolIds: new Map(),
 		activeSubagentToolNames: new Map(),
 		asyncAgentToolIds: new Set(),
+		subagentWatches: new Map(),
 		earlyCompletionToolIds: new Set(),
 		isWaiting: false,
 		permissionSent: false,
@@ -155,6 +156,14 @@ export function removeAgent(
 	const pt = pollingTimers.get(agentId);
 	if (pt) { clearInterval(pt); }
 	pollingTimers.delete(agentId);
+
+	// Stop any spawned sub-agent transcript watchers
+	for (const w of agent.subagentWatches.values()) {
+		w.watcher?.close();
+		if (w.poll) { clearInterval(w.poll); }
+		if (w.findTimer) { clearInterval(w.findTimer); }
+	}
+	agent.subagentWatches.clear();
 
 	// Cancel timers
 	cancelWaitingTimer(agentId, waitingTimers);
@@ -240,6 +249,7 @@ export function restoreAgents(
 			activeSubagentToolIds: new Map(),
 			activeSubagentToolNames: new Map(),
 			asyncAgentToolIds: new Set(),
+			subagentWatches: new Map(),
 			earlyCompletionToolIds: new Set(),
 			isWaiting: false,
 			permissionSent: false,

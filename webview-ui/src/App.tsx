@@ -634,6 +634,7 @@ function App() {
           agentTools={agentTools}
           agentStatuses={agentStatuses}
           subagentCharacters={subagentCharacters}
+          subagentTools={subagentTools}
           officeState={officeState}
         />
       )}

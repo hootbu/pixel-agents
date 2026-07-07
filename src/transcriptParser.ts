@@ -30,6 +30,18 @@ export const PERMISSION_EXEMPT_TOOLS = new Set(['Task', 'Agent', 'AskUserQuestio
 // carry this internal-metadata note, which a real completion result never does.
 const LAUNCH_ACK_MARKER = 'This tool result is internal metadata';
 
+// Hooks for watching a spawned agent's own transcript file (set up by fileWatcher
+// via the provider, to avoid a circular import). Called when a named sub-agent
+// launches / is despawned so its live tool activity can be streamed to the webview.
+type SubagentWatchStart = (agent: AgentState, parentToolId: string, name: string, webview: vscode.Webview | undefined) => void;
+type SubagentWatchStop = (agent: AgentState, parentToolId: string) => void;
+let onSubagentLaunch: SubagentWatchStart | undefined;
+let onSubagentStop: SubagentWatchStop | undefined;
+export function setSubagentWatchHandlers(start: SubagentWatchStart, stop: SubagentWatchStop): void {
+	onSubagentLaunch = start;
+	onSubagentStop = stop;
+}
+
 /** Flatten a tool_result's content (string | array of blocks) into plain text. */
 function toolResultText(content: unknown): string {
 	if (typeof content === 'string') {return content;}
@@ -205,6 +217,9 @@ export function processTranscriptLine(
 										parentToolId: completedToolId,
 										name: nameMatch[1],
 									});
+									// Start streaming this teammate's live tool activity from its
+									// own transcript file into the office + Tasks panel.
+									onSubagentLaunch?.(agent, completedToolId, nameMatch[1], webview);
 								}
 							} else if (isSubagentTool) {
 								// Synchronous sub-agent finished → clear its subagent tools
@@ -293,6 +308,7 @@ export function processTranscriptLine(
 				agent.asyncAgentToolIds.delete(toolId);
 				agent.activeSubagentToolIds.delete(toolId);
 				agent.activeSubagentToolNames.delete(toolId);
+				onSubagentStop?.(agent, toolId);
 				webview?.postMessage({ type: 'subagentClear', id: agentId, parentToolId: toolId });
 			}
 		}

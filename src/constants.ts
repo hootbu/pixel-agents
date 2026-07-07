@@ -2,6 +2,8 @@
 export const JSONL_POLL_INTERVAL_MS = 1000;
 export const FILE_WATCHER_POLL_INTERVAL_MS = 2000;
 export const PROJECT_SCAN_INTERVAL_MS = 1000;
+export const SUBAGENT_FIND_RETRY_MS = 500;
+export const SUBAGENT_FIND_MAX_RETRIES = 20; // ~10s to locate a spawned agent's transcript file
 export const TOOL_DONE_DELAY_MS = 300;
 export const PERMISSION_TIMER_DELAY_MS = 7000;
 export const PERMISSION_TIMEOUT_FAST_MS = 5000;

@@ -12,7 +12,8 @@ import {
 	sendLayout,
 	getProjectDirPath,
 } from './agentManager.js';
-import { ensureProjectScan, setAchievementHooks } from './fileWatcher.js';
+import { ensureProjectScan, setAchievementHooks, startSubagentWatch, stopSubagentWatch } from './fileWatcher.js';
+import { setSubagentWatchHandlers } from './transcriptParser.js';
 import { loadFurnitureAssets, sendAssetsToWebview, loadFloorTiles, sendFloorTilesToWebview, loadWallTiles, sendWallTilesToWebview, loadCharacterSprites, sendCharacterSpritesToWebview, loadDefaultLayout } from './assetLoader.js';
 import { WORKSPACE_KEY_AGENT_SEATS, WORKSPACE_KEY_AGENT_NAMES, GLOBAL_KEY_SOUND_ENABLED, GLOBAL_KEY_ZOOM, GLOBAL_KEY_PETS_ENABLED, GLOBAL_KEY_PET_DATA } from './constants.js';
 import { AchievementManager, ACHIEVEMENTS } from './achievementManager.js';
@@ -53,6 +54,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 		this.achievementManager = new AchievementManager(context);
 		this.achievementHooks = this.createAchievementHooks();
 		setAchievementHooks(this.achievementHooks);
+		setSubagentWatchHandlers(startSubagentWatch, stopSubagentWatch);
 	}
 
 	private notifyAchievement(id: string | null): void {

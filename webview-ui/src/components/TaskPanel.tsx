@@ -9,7 +9,21 @@ interface TaskPanelProps {
   agentTools: Record<number, ToolActivity[]>
   agentStatuses: Record<number, string>
   subagentCharacters: SubagentCharacter[]
+  subagentTools: Record<number, Record<string, ToolActivity[]>>
   officeState: OfficeState
+}
+
+/** Current activity line for a sub-agent, from the tools streamed off its transcript. */
+function getSubActivityText(tools: ToolActivity[] | undefined): string {
+  if (tools && tools.length > 0) {
+    const activeTool = [...tools].reverse().find((t) => !t.done)
+    if (activeTool) {
+      if (activeTool.permissionWait) return 'Needs approval'
+      return activeTool.status
+    }
+  }
+  // Spawned/alive but no tool running right now → thinking between actions
+  return 'Thinking...'
 }
 
 function getActivityText(
@@ -77,6 +91,7 @@ export function TaskPanel({
   agentTools,
   agentStatuses,
   subagentCharacters,
+  subagentTools,
   officeState,
 }: TaskPanelProps) {
   const [hoveredId, setHoveredId] = useState<number | null>(null)
@@ -160,6 +175,9 @@ export function TaskPanel({
             {subs.map((sub) => {
               const subCh = officeState.characters.get(sub.id)
               const subHasPermission = subCh?.bubbleType === 'permission'
+              const subActivity = subHasPermission
+                ? 'Needs approval'
+                : getSubActivityText(subagentTools[id]?.[sub.parentToolId])
 
               return (
                 <div
@@ -185,8 +203,18 @@ export function TaskPanel({
                   ) : (
                     <span style={{ width: 6, flexShrink: 0 }} />
                   )}
-                  <span style={{ color: 'var(--pixel-text-dim)' }}>
-                    {subHasPermission ? 'Needs approval' : sub.label}
+                  <span style={{ color: 'var(--pixel-text-dim)', flexShrink: 0 }}>{sub.label}</span>
+                  <span
+                    style={{
+                      color: 'var(--pixel-text-dim)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      marginLeft: 'auto',
+                      paddingLeft: 8,
+                      fontSize: '18px',
+                    }}
+                  >
+                    {subActivity}
                   </span>
                 </div>
               )
