@@ -223,24 +223,27 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
           }
         }
 
-        // Camera follow: smoothly center on followed agent
+        // Camera follow: smoothly center on followed agent or pet
+        let followTarget: { x: number; y: number } | null = null
         if (officeState.cameraFollowId !== null) {
-          const followCh = officeState.characters.get(officeState.cameraFollowId)
-          if (followCh) {
-            const layout = officeState.getLayout()
-            const mapW = layout.cols * TILE_SIZE * zoom
-            const mapH = layout.rows * TILE_SIZE * zoom
-            const targetX = mapW / 2 - followCh.x * zoom
-            const targetY = mapH / 2 - followCh.y * zoom
-            const dx = targetX - panRef.current.x
-            const dy = targetY - panRef.current.y
-            if (Math.abs(dx) < CAMERA_FOLLOW_SNAP_THRESHOLD && Math.abs(dy) < CAMERA_FOLLOW_SNAP_THRESHOLD) {
-              panRef.current = { x: targetX, y: targetY }
-            } else {
-              panRef.current = {
-                x: panRef.current.x + dx * CAMERA_FOLLOW_LERP,
-                y: panRef.current.y + dy * CAMERA_FOLLOW_LERP,
-              }
+          followTarget = officeState.characters.get(officeState.cameraFollowId) ?? null
+        } else if (officeState.cameraFollowPetId !== null) {
+          followTarget = officeState.pets.find((p) => p.id === officeState.cameraFollowPetId) ?? null
+        }
+        if (followTarget) {
+          const layout = officeState.getLayout()
+          const mapW = layout.cols * TILE_SIZE * zoom
+          const mapH = layout.rows * TILE_SIZE * zoom
+          const targetX = mapW / 2 - followTarget.x * zoom
+          const targetY = mapH / 2 - followTarget.y * zoom
+          const dx = targetX - panRef.current.x
+          const dy = targetY - panRef.current.y
+          if (Math.abs(dx) < CAMERA_FOLLOW_SNAP_THRESHOLD && Math.abs(dy) < CAMERA_FOLLOW_SNAP_THRESHOLD) {
+            panRef.current = { x: targetX, y: targetY }
+          } else {
+            panRef.current = {
+              x: panRef.current.x + dx * CAMERA_FOLLOW_LERP,
+              y: panRef.current.y + dy * CAMERA_FOLLOW_LERP,
             }
           }
         }
@@ -478,6 +481,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
         e.preventDefault()
         // Break camera follow on manual pan
         officeState.cameraFollowId = null
+        officeState.cameraFollowPetId = null
         isPanningRef.current = true
         panStartRef.current = {
           mouseX: e.clientX,
@@ -715,6 +719,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
       // --- Normal mode ---
       if (hitId !== null) {
         officeState.dismissBubble(hitId)
+        officeState.cameraFollowPetId = null
         if (officeState.selectedAgentId === hitId) {
           officeState.selectedAgentId = null
           officeState.cameraFollowId = null
@@ -726,11 +731,22 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
         return
       }
 
-      // No agent hit — deselect
+      // No agent hit — check for a pet to follow with the camera
+      const petId = officeState.getPetAt(pos.worldX, pos.worldY)
+      if (petId !== null) {
+        officeState.selectedAgentId = null
+        officeState.cameraFollowId = null
+        // Toggle: clicking the followed pet again stops following
+        officeState.cameraFollowPetId = officeState.cameraFollowPetId === petId ? null : petId
+        return
+      }
+
+      // No agent or pet hit — deselect
       if (officeState.selectedAgentId !== null) {
         officeState.selectedAgentId = null
         officeState.cameraFollowId = null
       }
+      officeState.cameraFollowPetId = null
     },
     [officeState, onClick, screenToWorld, screenToTile, isEditMode, isSeatMode, isCostumeMode, onCostumeTargetSelect],
   )
@@ -778,6 +794,7 @@ export function OfficeCanvas({ officeState, onClick, isEditMode, isSeatMode, isC
         // Pan via trackpad two-finger scroll or mouse wheel
         const dpr = window.devicePixelRatio || 1
         officeState.cameraFollowId = null
+        officeState.cameraFollowPetId = null
         panRef.current = clampPan(
           panRef.current.x - e.deltaX * dpr,
           panRef.current.y - e.deltaY * dpr,

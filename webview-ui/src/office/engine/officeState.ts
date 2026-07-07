@@ -16,7 +16,7 @@ import {
 } from '../../constants.js'
 import type { Character, Seat, FurnitureInstance, TileType as TileTypeVal, OfficeLayout, PlacedFurniture } from '../types.js'
 import { createCharacter, updateCharacter } from './characters.js'
-import { createPet, updatePet, updatePetConfig } from './pets.js'
+import { createPet, updatePet, updatePetConfig, getPetSprite } from './pets.js'
 import type { Pet } from './pets.js'
 import type { PetConfig } from '../types.js'
 import { matrixEffectSeeds } from './matrixEffect.js'
@@ -40,6 +40,8 @@ export class OfficeState {
   characters: Map<number, Character> = new Map()
   selectedAgentId: number | null = null
   cameraFollowId: number | null = null
+  /** Pet.id the camera is following (separate id space from characters) */
+  cameraFollowPetId: number | null = null
   hoveredAgentId: number | null = null
   hoveredTile: { col: number; row: number } | null = null
   /** Maps "parentId:toolId" → sub-agent character ID (negative) */
@@ -752,6 +754,31 @@ export class OfficeState {
       }
     }
     this.pets = newPets
+    // Clear pet camera follow if the followed pet no longer exists
+    if (this.cameraFollowPetId !== null && !this.pets.some((p) => p.id === this.cameraFollowPetId)) {
+      this.cameraFollowPetId = null
+    }
+  }
+
+  /** Get pet at pixel position (for hit testing). Returns Pet.id or null. */
+  getPetAt(worldX: number, worldY: number): number | null {
+    if (!this.petsEnabled) return null
+    // Front-most (highest y) first
+    const pets = [...this.pets].sort((a, b) => b.y - a.y)
+    for (const pet of pets) {
+      // Pet sprite is anchored bottom-center (see renderer)
+      const sprite = getPetSprite(pet)
+      const halfW = (sprite[0]?.length ?? 0) / 2
+      const height = sprite.length
+      const left = pet.x - halfW
+      const right = pet.x + halfW
+      const top = pet.y - height
+      const bottom = pet.y
+      if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
+        return pet.id
+      }
+    }
+    return null
   }
 
   /** Get character at pixel position (for hit testing). Returns id or null. */

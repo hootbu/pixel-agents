@@ -177,6 +177,7 @@ function App() {
         const os = getOfficeState()
         os.selectedAgentId = null
         os.cameraFollowId = null
+        os.cameraFollowPetId = null
       }
       return next
     })
@@ -192,6 +193,7 @@ function App() {
         const os = getOfficeState()
         os.selectedAgentId = null
         os.cameraFollowId = null
+        os.cameraFollowPetId = null
       }
       return next
     })
