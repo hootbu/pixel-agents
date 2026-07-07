@@ -239,7 +239,9 @@ export function useExtensionMessages(
         // Create sub-agent character for Task tool subtasks
         if (status.startsWith('Subtask:')) {
           const label = status.slice('Subtask:'.length).trim()
-          const subId = os.addSubagent(id, toolId)
+          // Start with the task description as the name; a real teammate name
+          // (e.g. "Mimar") replaces it via subagentName once the launch ack arrives.
+          const subId = os.addSubagent(id, toolId, label)
           setSubagentCharacters((prev) => {
             if (prev.some((s) => s.id === subId)) return prev
             return [...prev, { id: subId, parentAgentId: id, parentToolId: toolId, label }]
@@ -270,9 +272,10 @@ export function useExtensionMessages(
           delete next[id]
           return next
         })
-        // Remove all sub-agent characters belonging to this agent
-        os.removeAllSubagents(id)
-        setSubagentCharacters((prev) => prev.filter((s) => s.parentAgentId !== id))
+        // NOTE: sub-agent characters are intentionally NOT removed here. Spawned
+        // agents (async one-shot / standby teammates) persist across turns and are
+        // despawned only by their task-notification (subagentClear) or when the
+        // parent agent closes (agentClosed). Turn-end tool cleanup must not kill them.
         os.setAgentTool(id, null)
         os.clearPermissionBubble(id)
       } else if (msg.type === 'agentSelected') {
@@ -383,6 +386,12 @@ export function useExtensionMessages(
         // Remove sub-agent character
         os.removeSubagent(id, parentToolId)
         setSubagentCharacters((prev) => prev.filter((s) => !(s.parentAgentId === id && s.parentToolId === parentToolId)))
+      } else if (msg.type === 'subagentName') {
+        const id = msg.id as number
+        const parentToolId = msg.parentToolId as string
+        const name = msg.name as string
+        os.renameSubagent(id, parentToolId, name)
+        setSubagentCharacters((prev) => prev.map((s) => (s.parentAgentId === id && s.parentToolId === parentToolId ? { ...s, label: name } : s)))
       } else if (msg.type === 'agentMoodEvent') {
         const id = msg.id as number
         const mood = msg.mood as 'happy' | 'error' | 'stressed'

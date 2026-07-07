@@ -21,6 +21,7 @@ export interface AgentState {
 	activeToolNames: Map<string, string>;
 	activeSubagentToolIds: Map<string, Set<string>>; // parentToolId → active sub-tool IDs
 	activeSubagentToolNames: Map<string, Map<string, string>>; // parentToolId → (subToolId → toolName)
+	asyncAgentToolIds: Set<string>; // Agent tool IDs launched in background; kept alive until their task-notification
 	earlyCompletionToolIds: Set<string>;
 	isWaiting: boolean;
 	permissionSent: boolean;

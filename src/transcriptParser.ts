@@ -18,7 +18,26 @@ import {
 	MOOD_STRESSED_RAPID_COUNT,
 } from './constants.js';
 
-export const PERMISSION_EXEMPT_TOOLS = new Set(['Task', 'AskUserQuestion']);
+// Tools that spawn a sub-agent. Newer Claude Code renamed 'Task' → 'Agent';
+// both are recognized so spawned agents show up as sub-agent characters.
+export const SUBAGENT_TOOLS = new Set(['Task', 'Agent']);
+
+export const PERMISSION_EXEMPT_TOOLS = new Set(['Task', 'Agent', 'AskUserQuestion']);
+
+// A spawned Agent (async one-shot OR standby teammate) returns a launch ack
+// immediately — long before it finishes — so it must NOT despawn the sub-agent.
+// Both ack variants ("Async agent launched successfully" / "Spawned successfully")
+// carry this internal-metadata note, which a real completion result never does.
+const LAUNCH_ACK_MARKER = 'This tool result is internal metadata';
+
+/** Flatten a tool_result's content (string | array of blocks) into plain text. */
+function toolResultText(content: unknown): string {
+	if (typeof content === 'string') {return content;}
+	if (Array.isArray(content)) {
+		return content.map(b => (b && typeof b === 'object' && typeof (b as { text?: unknown }).text === 'string' ? (b as { text: string }).text : '')).join(' ');
+	}
+	return '';
+}
 
 export function formatToolStatus(toolName: string, input: Record<string, unknown>): string {
 	const base = (p: unknown) => typeof p === 'string' ? path.basename(p) : '';
@@ -34,7 +53,8 @@ export function formatToolStatus(toolName: string, input: Record<string, unknown
 		case 'Grep': return 'Searching code';
 		case 'WebFetch': return 'Fetching web content';
 		case 'WebSearch': return 'Searching the web';
-		case 'Task': {
+		case 'Task':
+		case 'Agent': {
 			const desc = typeof input.description === 'string' ? input.description : '';
 			return desc ? `Subtask: ${desc.length > TASK_DESCRIPTION_DISPLAY_MAX_LENGTH ? desc.slice(0, TASK_DESCRIPTION_DISPLAY_MAX_LENGTH) + '\u2026' : desc}` : 'Running subtask';
 		}
@@ -155,7 +175,7 @@ export function processTranscriptLine(
 		} else if (record.type === 'user') {
 			const content = record.message?.content;
 			if (Array.isArray(content)) {
-				const blocks = content as Array<{ type: string; tool_use_id?: string; is_error?: boolean }>;
+				const blocks = content as Array<{ type: string; tool_use_id?: string; is_error?: boolean; content?: unknown }>;
 				const hasToolResult = blocks.some(b => b.type === 'tool_result');
 				if (hasToolResult) {
 					for (const block of blocks) {
@@ -168,8 +188,26 @@ export function processTranscriptLine(
 						if (block.type === 'tool_result' && block.tool_use_id) {
 							console.log(`[Pixel Agents] Agent ${agentId} tool done: ${block.tool_use_id}`);
 							const completedToolId = block.tool_use_id;
-							// If the completed tool was a Task, clear its subagent tools
-							if (agent.activeToolNames.get(completedToolId) === 'Task') {
+							const isSubagentTool = SUBAGENT_TOOLS.has(agent.activeToolNames.get(completedToolId) || '');
+							const resultText = toolResultText(block.content);
+							if (isSubagentTool && resultText.includes(LAUNCH_ACK_MARKER)) {
+								// Spawned agent just launched — this is only the ack. Keep its
+								// character alive; it despawns on its <task-notification> (one-shot)
+								// or when the parent agent closes (persistent teammate).
+								agent.asyncAgentToolIds.add(completedToolId);
+								// Teammate acks carry "agent_id: <Name>@session-…" — show that name
+								// on the character instead of the raw task description.
+								const nameMatch = resultText.match(/agent_id:\s*([^\s@]+)@/);
+								if (nameMatch) {
+									webview?.postMessage({
+										type: 'subagentName',
+										id: agentId,
+										parentToolId: completedToolId,
+										name: nameMatch[1],
+									});
+								}
+							} else if (isSubagentTool) {
+								// Synchronous sub-agent finished → clear its subagent tools
 								agent.activeSubagentToolIds.delete(completedToolId);
 								agent.activeSubagentToolNames.delete(completedToolId);
 								webview?.postMessage({
@@ -246,6 +284,17 @@ export function processTranscriptLine(
 				id: agentId,
 				status: 'waiting',
 			});
+		} else if (record.type === 'queue-operation' && typeof record.content === 'string') {
+			// A background (async) Agent stopped/finished. Its <task-notification>
+			// carries the original tool-use-id → despawn that sub-agent character.
+			const match = record.content.match(/<tool-use-id>([^<]+)<\/tool-use-id>/);
+			if (match && agent.asyncAgentToolIds.has(match[1])) {
+				const toolId = match[1];
+				agent.asyncAgentToolIds.delete(toolId);
+				agent.activeSubagentToolIds.delete(toolId);
+				agent.activeSubagentToolNames.delete(toolId);
+				webview?.postMessage({ type: 'subagentClear', id: agentId, parentToolId: toolId });
+			}
 		}
 	} catch {
 		// Ignore malformed lines
@@ -310,8 +359,8 @@ function processProgressRecord(
 		return;
 	}
 
-	// Verify parent is an active Task tool (agent_progress handling)
-	if (agent.activeToolNames.get(parentToolId) !== 'Task') {return;}
+	// Verify parent is an active sub-agent tool (agent_progress handling)
+	if (!SUBAGENT_TOOLS.has(agent.activeToolNames.get(parentToolId) || '')) {return;}
 
 	const msg = data.message as Record<string, unknown> | undefined;
 	if (!msg) {return;}

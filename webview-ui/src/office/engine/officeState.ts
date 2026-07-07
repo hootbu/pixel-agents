@@ -228,6 +228,35 @@ export class OfficeState {
     return { palette, hueShift }
   }
 
+  /**
+   * Pick a distinct palette for a sub-agent. Unlike pickDiversePalette this counts
+   * ALL characters (parent + already-spawned sub-agents), so two sub-agents created
+   * back-to-back land on different least-used palettes instead of matching.
+   */
+  private pickSubagentPalette(): { palette: number; hueShift: number } {
+    const counts = new Array(PALETTE_COUNT).fill(0) as number[]
+    for (const ch of this.characters.values()) {
+      counts[ch.palette]++
+    }
+    const minCount = Math.min(...counts)
+    const available: number[] = []
+    for (let i = 0; i < PALETTE_COUNT; i++) {
+      if (counts[i] === minCount) available.push(i)
+    }
+    const palette = available[Math.floor(Math.random() * available.length)]
+    // Once every base palette is in use, add a random hue shift for extra variety.
+    const hueShift = minCount > 0 ? HUE_SHIFT_MIN_DEG + Math.floor(Math.random() * HUE_SHIFT_RANGE_DEG) : 0
+    return { palette, hueShift }
+  }
+
+  /** Update a sub-agent character's display name (e.g. once its real teammate name is known). */
+  renameSubagent(parentAgentId: number, parentToolId: string, name: string): void {
+    const subId = this.getSubagentId(parentAgentId, parentToolId)
+    if (subId === null) return
+    const ch = this.characters.get(subId)
+    if (ch) ch.name = name
+  }
+
   addAgent(id: number, preferredPalette?: number, preferredHueShift?: number, preferredSeatId?: string, skipSpawnEffect?: boolean, name?: string): void {
     if (this.characters.has(id)) return
 
@@ -391,14 +420,16 @@ export class OfficeState {
   }
 
   /** Create a sub-agent character with the parent's palette. Returns the sub-agent ID. */
-  addSubagent(parentAgentId: number, parentToolId: string): number {
+  addSubagent(parentAgentId: number, parentToolId: string, name = ''): number {
     const key = `${parentAgentId}:${parentToolId}`
     if (this.subagentIdMap.has(key)) return this.subagentIdMap.get(key)!
 
     const id = this.nextSubagentId--
     const parentCh = this.characters.get(parentAgentId)
-    const palette = parentCh ? parentCh.palette : 0
-    const hueShift = parentCh ? parentCh.hueShift : 0
+    // Give each sub-agent a distinct character type: the least-used palette among
+    // ALL current characters. Because the previous sub-agent is already registered
+    // when the next one is created, concurrent sub-agents never come out as twins.
+    const { palette, hueShift } = this.pickSubagentPalette()
 
     // Find the free seat closest to the parent agent
     const parentCol = parentCh ? parentCh.tileCol : 0
@@ -422,7 +453,7 @@ export class OfficeState {
     if (bestSeatId) {
       const seat = this.seats.get(bestSeatId)!
       seat.assigned = true
-      ch = createCharacter(id, palette, bestSeatId, seat, hueShift)
+      ch = createCharacter(id, palette, bestSeatId, seat, hueShift, name)
     } else {
       // No seats — spawn at closest walkable tile to parent
       let spawn = { col: 1, row: 1 }
@@ -438,7 +469,7 @@ export class OfficeState {
         }
         spawn = closest
       }
-      ch = createCharacter(id, palette, null, null, hueShift)
+      ch = createCharacter(id, palette, null, null, hueShift, name)
       ch.x = spawn.col * TILE_SIZE + TILE_SIZE / 2
       ch.y = spawn.row * TILE_SIZE + TILE_SIZE / 2
       ch.tileCol = spawn.col

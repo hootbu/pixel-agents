@@ -20,6 +20,8 @@ export function clearAgentActivity(
 	agent.activeToolNames.clear();
 	agent.activeSubagentToolIds.clear();
 	agent.activeSubagentToolNames.clear();
+	// NOTE: asyncAgentToolIds is intentionally NOT cleared here — spawned agents
+	// outlive the turn that launched them and despawn only on their task-notification.
 	agent.earlyCompletionToolIds.clear();
 	agent.isWaiting = false;
 	agent.permissionSent = false;

@@ -11,6 +11,23 @@ let globalAchievementHooks: AchievementHooks | undefined;
 export function setAchievementHooks(hooks: AchievementHooks): void {
 	globalAchievementHooks = hooks;
 }
+
+// Byte size each known-but-unowned JSONL had when first seen. A file that grows
+// past this after the extension started is a live external session still being
+// written to — the terminal the user is actually chatting in — so we adopt it
+// retroactively (the seed step alone would otherwise ignore it forever).
+const externalFileSeedSizes = new Map<string, number>();
+
+function jsonlSize(file: string): number {
+	try { return fs.statSync(file).size; } catch { return 0; }
+}
+
+function isFileOwned(file: string, agents: Map<number, AgentState>): boolean {
+	for (const agent of agents.values()) {
+		if (agent.jsonlFile === file) {return true;}
+	}
+	return false;
+}
 import { FILE_WATCHER_POLL_INTERVAL_MS, PROJECT_SCAN_INTERVAL_MS } from './constants.js';
 
 export function startFileWatching(
@@ -107,6 +124,7 @@ export function ensureProjectScan(
 			.map(f => path.join(projectDir, f));
 		for (const f of files) {
 			knownJsonlFiles.add(f);
+			externalFileSeedSizes.set(f, jsonlSize(f));
 		}
 	} catch { /* dir may not exist yet */ }
 
@@ -142,6 +160,7 @@ function scanForNewJsonlFiles(
 	for (const file of files) {
 		if (!knownJsonlFiles.has(file)) {
 			knownJsonlFiles.add(file);
+			externalFileSeedSizes.set(file, jsonlSize(file));
 			if (activeAgentIdRef.current !== null) {
 				// Active agent focused → /clear reassignment
 				console.log(`[Pixel Agents] New JSONL detected: ${path.basename(file)}, reassigning to agent ${activeAgentIdRef.current}`);
@@ -152,33 +171,67 @@ function scanForNewJsonlFiles(
 				);
 			} else {
 				// No active agent → try to adopt the focused terminal
-				const activeTerminal = vscode.window.activeTerminal;
-				if (activeTerminal) {
-					let owned = false;
-					for (const agent of agents.values()) {
-						if (agent.terminalRef === activeTerminal) {
-							owned = true;
-							break;
-						}
-					}
-					if (!owned) {
-						adoptTerminalForFile(
-							activeTerminal, file, projectDir,
-							nextAgentIdRef, agents, activeAgentIdRef,
-							fileWatchers, pollingTimers, waitingTimers, permissionTimers,
-							webview, persistAgents,
-						);
-					}
-				}
+				tryAdoptActiveTerminal(
+					file, projectDir, 0, nextAgentIdRef, agents, activeAgentIdRef,
+					fileWatchers, pollingTimers, waitingTimers, permissionTimers,
+					webview, persistAgents,
+				);
+			}
+		} else if (activeAgentIdRef.current === null && !isFileOwned(file, agents)) {
+			// Known but unowned. If it has grown since the extension started, it is a
+			// live external session (the terminal the user is chatting in) that the seed
+			// step skipped — adopt the focused terminal retroactively. Start reading from
+			// the SEED offset (where we began watching), not the end: the very growth that
+			// triggers adoption often contains the Agent-spawn records, and reading from
+			// the end would skip them so no sub-agent characters would ever appear. Reading
+			// from seed replays only activity since the panel opened, not ancient history.
+			const seed = externalFileSeedSizes.get(file);
+			const size = jsonlSize(file);
+			if (seed !== undefined && size > seed) {
+				tryAdoptActiveTerminal(
+					file, projectDir, seed, nextAgentIdRef, agents, activeAgentIdRef,
+					fileWatchers, pollingTimers, waitingTimers, permissionTimers,
+					webview, persistAgents,
+				);
 			}
 		}
 	}
+}
+
+/** Adopt the focused terminal for a file, if there is one not already owning an agent. */
+function tryAdoptActiveTerminal(
+	file: string,
+	projectDir: string,
+	initialOffset: number,
+	nextAgentIdRef: { current: number },
+	agents: Map<number, AgentState>,
+	activeAgentIdRef: { current: number | null },
+	fileWatchers: Map<number, fs.FSWatcher>,
+	pollingTimers: Map<number, ReturnType<typeof setInterval>>,
+	waitingTimers: Map<number, ReturnType<typeof setTimeout>>,
+	permissionTimers: Map<number, ReturnType<typeof setTimeout>>,
+	webview: vscode.Webview | undefined,
+	persistAgents: () => void,
+): void {
+	const activeTerminal = vscode.window.activeTerminal;
+	if (!activeTerminal) {return;}
+	for (const agent of agents.values()) {
+		if (agent.terminalRef === activeTerminal) {return;} // already owned
+	}
+	externalFileSeedSizes.delete(file);
+	adoptTerminalForFile(
+		activeTerminal, file, projectDir, initialOffset,
+		nextAgentIdRef, agents, activeAgentIdRef,
+		fileWatchers, pollingTimers, waitingTimers, permissionTimers,
+		webview, persistAgents,
+	);
 }
 
 function adoptTerminalForFile(
 	terminal: vscode.Terminal,
 	jsonlFile: string,
 	projectDir: string,
+	initialOffset: number,
 	nextAgentIdRef: { current: number },
 	agents: Map<number, AgentState>,
 	activeAgentIdRef: { current: number | null },
@@ -197,13 +250,14 @@ function adoptTerminalForFile(
 		terminalRef: terminal,
 		projectDir,
 		jsonlFile,
-		fileOffset: 0,
+		fileOffset: initialOffset,
 		lineBuffer: '',
 		activeToolIds: new Set(),
 		activeToolStatuses: new Map(),
 		activeToolNames: new Map(),
 		activeSubagentToolIds: new Map(),
 		activeSubagentToolNames: new Map(),
+		asyncAgentToolIds: new Set(),
 		earlyCompletionToolIds: new Set(),
 		isWaiting: false,
 		permissionSent: false,
