@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-18
+
+### Added
+- Status bar **+ Agent** button — launch a new agent from anywhere in VS Code, without opening the office panel first. The agent still appears in the office the next time the panel is shown.
+- Status bar **Tasks** button — opens a live list of every agent: its status (running / needs approval / waiting / idle), the tool it is currently using, and any sub-agents it spawned. Selecting a row focuses that agent's terminal.
+
 ## [1.2.7] - 2026-07-07
 
 ### Added
