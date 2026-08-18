@@ -101,6 +101,25 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 		persistAgents(this.agents, this.context);
 	};
 
+	/**
+	 * Launches a new Claude terminal + agent. Shared by the webview button and the
+	 * status bar item. If the office panel was never opened, the agent is still
+	 * created and persisted — it shows up in the office once the panel is opened.
+	 */
+	async launchAgent(): Promise<void> {
+		await launchNewTerminal(
+			this.nextAgentId, this.nextTerminalIndex,
+			this.agents, this.activeAgentId, this.knownJsonlFiles,
+			this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
+			this.jsonlPollTimers, this.projectScanTimer,
+			this.webview, this.persistAgents,
+			this.context,
+		);
+		// Achievement tracking
+		this.notifyAchievement(this.achievementManager.increment('first_agent'));
+		this.notifyAchievement(this.achievementManager.setMax('team_player', this.agents.size));
+	}
+
 	resolveWebviewView(webviewView: vscode.WebviewView) {
 		this.webviewView = webviewView;
 		webviewView.webview.options = { enableScripts: true };
@@ -108,17 +127,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.onDidReceiveMessage(async (message) => {
 			if (message.type === 'openClaude') {
-				await launchNewTerminal(
-					this.nextAgentId, this.nextTerminalIndex,
-					this.agents, this.activeAgentId, this.knownJsonlFiles,
-					this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
-					this.jsonlPollTimers, this.projectScanTimer,
-					this.webview, this.persistAgents,
-					this.context,
-				);
-				// Achievement tracking
-				this.notifyAchievement(this.achievementManager.increment('first_agent'));
-				this.notifyAchievement(this.achievementManager.setMax('team_player', this.agents.size));
+				await this.launchAgent();
 			} else if (message.type === 'focusAgent') {
 				const agent = this.agents.get(message.id);
 				if (agent) {

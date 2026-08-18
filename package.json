@@ -38,7 +38,9 @@
     "color": "#1e1e2e",
     "theme": "dark"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -49,6 +51,16 @@
       {
         "command": "pixel-agent.exportDefaultLayout",
         "title": "Pixel Agents: Export Layout as Default"
+      },
+      {
+        "command": "pixel-agent.newAgent",
+        "title": "Pixel Agents: New Agent",
+        "icon": "$(add)"
+      },
+      {
+        "command": "pixel-agent.showTasks",
+        "title": "Pixel Agents: Show Tasks",
+        "icon": "$(checklist)"
       }
     ],
     "viewsContainers": {
